@@ -4,9 +4,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"tmpl/internal/service"
-	"tmpl/internal/shared/routes"
-	"tmpl/internal/shared/session"
+	"gohat/internal/service"
+	"gohat/internal/shared/ctxutil"
+	"gohat/internal/shared/routes"
+	"gohat/internal/shared/session"
 )
 
 type Auth struct {
@@ -29,7 +30,7 @@ func (m *Auth) RequireGuest(handler http.Handler) http.Handler {
 			return
 		}
 
-		err = m.authSrv.VerifySession(r.Context(), sessionIDStr)
+		_, err = m.authSrv.VerifySession(r.Context(), sessionIDStr)
 		if err != nil {
 			m.logger.Warn("verifying session", "err", err)
 			session.ClearCookie(w)
@@ -49,7 +50,7 @@ func (m *Auth) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		err = m.authSrv.VerifySession(r.Context(), sessionIDStr)
+		s, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
 		if err != nil {
 			m.logger.Warn("verifying session", "err", err)
 			session.ClearCookie(w)
@@ -57,6 +58,7 @@ func (m *Auth) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		handler.ServeHTTP(w, r)
+		ctx := ctxutil.WithUserID(r.Context(), s.UserID)
+		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

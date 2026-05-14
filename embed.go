@@ -1,4 +1,4 @@
-package gotmpl
+package gohat
 
 import "embed"
 

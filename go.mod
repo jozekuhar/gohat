@@ -1,4 +1,4 @@
-module tmpl
+module gohat
 
 go 1.26.3
 

@@ -3,8 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"tmpl/internal/shared/web"
-	"tmpl/internal/view"
+	"gohat/internal/shared/web"
+	"gohat/internal/view"
+
+	hx "maragu.dev/gomponents-htmx/http"
 )
 
 type Counter struct {
@@ -19,4 +21,11 @@ func NewCounter() *Counter {
 
 func (h *Counter) GetCounter(w http.ResponseWriter, r *http.Request) {
 	web.Render(w, h.counterView.CounterPage())
+}
+
+func (h *Counter) GetCounterModal(w http.ResponseWriter, r *http.Request) {
+	jsonto := `{"open-modal": {"title": "Counter"}}`
+
+	hx.SetTrigger(w.Header(), jsonto)
+	web.Render(w, h.counterView.CounterModalContent())
 }

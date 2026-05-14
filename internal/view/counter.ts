@@ -4,7 +4,7 @@ interface CounterComponent {
     dec(): void;
 }
 
-export default function CounterComponent(): CounterComponent {
+export default function counterComponent(): CounterComponent {
     return {
         count: 0,
         inc() {

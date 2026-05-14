@@ -11,6 +11,7 @@ const (
 
 const (
 	Index        = "/"
+	IModal       = "/i/modal"
 	Login        = "/login"
 	ILoginGoogle = "/i/login/google"
 	ILogout      = "/i/logout"

@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	"tmpl/internal/model"
-	"tmpl/internal/repository"
-	"tmpl/internal/shared/config"
+	"gohat/internal/model"
+	"gohat/internal/repository"
+	"gohat/internal/shared/config"
 
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
@@ -103,22 +103,22 @@ func (s *Auth) ProcessGoogleLogin(ctx context.Context, code, state string) (*mod
 	return session, nil
 }
 
-func (s *Auth) VerifySession(ctx context.Context, sessionID string) error {
+func (s *Auth) VerifySession(ctx context.Context, sessionID string) (*model.Session, error) {
 	id, err := uuid.Parse(sessionID)
 	if err != nil {
-		return fmt.Errorf("parsing session id: %w", err)
+		return nil, fmt.Errorf("parsing session id: %w", err)
 	}
 
 	session, err := s.authRepo.GetSession(ctx, id)
 	if err != nil {
-		return fmt.Errorf("retrieve session: %w", err)
+		return nil, fmt.Errorf("retrieve session: %w", err)
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		return fmt.Errorf("session expired fof user with id: %d", session.UserID)
+		return nil, fmt.Errorf("session expired fof user with id: %d", session.UserID)
 	}
 
-	return nil
+	return session, err
 }
 
 func (s *Auth) Logout(ctx context.Context, sessionIDStr string) error {

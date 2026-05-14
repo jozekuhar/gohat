@@ -4,12 +4,12 @@ import (
 	"log/slog"
 	"net/http"
 
-	"tmpl/internal/service"
-	"tmpl/internal/shared/config"
-	"tmpl/internal/shared/routes"
-	"tmpl/internal/shared/session"
-	"tmpl/internal/shared/web"
-	"tmpl/internal/view"
+	"gohat/internal/service"
+	"gohat/internal/shared/config"
+	"gohat/internal/shared/routes"
+	"gohat/internal/shared/session"
+	"gohat/internal/shared/web"
+	"gohat/internal/view"
 
 	hx "maragu.dev/gomponents-htmx/http"
 )

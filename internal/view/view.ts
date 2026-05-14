@@ -1,8 +1,23 @@
 import "./view.css";
-import "htmx.org";
 import Alpine from "alpinejs";
-import CounterComponent from "./counter";
+import focus from "@alpinejs/focus";
+import modalComponent from "./modal";
+import counterComponent from "./counter";
+import htmx from "htmx.org";
 
-Alpine.data("CounterComponent", CounterComponent);
+declare global {
+    interface Window {
+        htmx: typeof htmx;
+        Alpine: typeof Alpine;
+    }
+}
+
+Alpine.plugin(focus);
+
+Alpine.data("modal", modalComponent);
+Alpine.data("counter", counterComponent);
+
+window.htmx = htmx;
+window.Alpine = Alpine;
 
 Alpine.start();

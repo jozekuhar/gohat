@@ -6,14 +6,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"tmpl/internal/handler"
-	"tmpl/internal/middleware"
-	"tmpl/internal/provider/postgres"
-	"tmpl/internal/repository"
-	"tmpl/internal/service"
-	"tmpl/internal/shared/config"
-	"tmpl/internal/shared/routes"
-	"tmpl/internal/view"
+	"gohat/internal/handler"
+	"gohat/internal/middleware"
+	"gohat/internal/provider/postgres"
+	"gohat/internal/repository"
+	"gohat/internal/service"
+	"gohat/internal/shared/config"
+	"gohat/internal/shared/routes"
+	"gohat/internal/view"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -51,14 +51,17 @@ func main() {
 	userSrv := service.NewUser(userRepo)
 	authSrv := service.NewAuth(cfg, authRepo, userSrv)
 
-	coreHdl := handler.NewCore()
+	staticHdl := handler.NewStatic()
+	fallbackHdl := handler.NewFallback()
 	authHdl := handler.NewAuth(cfg, logger, authSrv)
 	counterHdl := handler.NewCounter()
 
 	authMdw := middleware.NewAuth(logger, authSrv)
 
 	r.Group(func(r chi.Router) {
-		r.Get(routes.Static, coreHdl.GetStatic)
+		r.Get(routes.Static, staticHdl.GetStatic)
+		r.NotFound(fallbackHdl.GetNotFound)
+		r.MethodNotAllowed(fallbackHdl.GetMethodNotAllowed)
 	})
 
 	r.Group(func(r chi.Router) {
@@ -71,6 +74,7 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(authMdw.RequireAuth)
 		r.Get(routes.Index, counterHdl.GetCounter)
+		r.Get(routes.IModal, counterHdl.GetCounterModal)
 		r.Post(routes.ILogout, authHdl.PostLogout)
 	})
 

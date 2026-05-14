@@ -4,10 +4,10 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
     plugins: [tailwindcss()],
     build: {
-        outDir: "./static",
+        outDir: "./static/dist/",
+        assetsDir: "",
         emptyOutDir: true,
-        assetsDir: "dist",
-        manifest: "dist/manifest.json",
+        manifest: "manifest.json",
         rollupOptions: {
             input: {
                 view: "./internal/view/view.ts",

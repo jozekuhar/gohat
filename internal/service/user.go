@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"tmpl/internal/model"
-	"tmpl/internal/repository"
+	"gohat/internal/model"
+	"gohat/internal/repository"
 )
 
 type User struct {
