@@ -1,25 +1,26 @@
+import { AlpineComponent } from "alpinejs";
+
 interface ModalEventDetail {
     title: string;
 }
 
-interface ModalComponent {
-    isOpen: boolean;
+interface Modal {
+    show: boolean;
     title: string;
     open(e: CustomEvent<ModalEventDetail>): void;
     close(): void;
 }
 
-export default function modalComponent(): ModalComponent {
+export default function modal(): AlpineComponent<Modal> {
     return {
-        isOpen: false,
+        show: false,
         title: "",
         open(e) {
             this.title = e.detail.title;
-            this.isOpen = true;
+            this.show = true;
         },
         close() {
-            console.log("close");
-            this.isOpen = false;
+            this.show = false;
         },
     };
 }

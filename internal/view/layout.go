@@ -11,12 +11,14 @@ import (
 
 type layout struct {
 	modal     *modal
+	toast     *toast
 	component *component
 }
 
 func newLayout() *layout {
 	return &layout{
 		modal:     newModal(),
+		toast:     newToast(),
 		component: newComponent(),
 	}
 }
@@ -29,6 +31,7 @@ func (v *layout) Auth(children ...g.Node) g.Node {
 	return v.base(
 		v.navbar(),
 		g.Map(children, func(node g.Node) g.Node { return node }),
+		v.toast.container(),
 		v.modal.container(),
 	)
 }
@@ -45,6 +48,7 @@ func (v *layout) base(children ...g.Node) g.Node {
 			}),
 		},
 		Body: g.Group{
+			h.Class("bg-gray-50"),
 			g.Map(children, func(node g.Node) g.Node {
 				return node
 			}),

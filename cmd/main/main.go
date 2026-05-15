@@ -54,7 +54,7 @@ func main() {
 	staticHdl := handler.NewStatic()
 	fallbackHdl := handler.NewFallback()
 	authHdl := handler.NewAuth(cfg, logger, authSrv)
-	counterHdl := handler.NewCounter()
+	exampleHdl := handler.NewExample()
 
 	authMdw := middleware.NewAuth(logger, authSrv)
 
@@ -73,8 +73,9 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(authMdw.RequireAuth)
-		r.Get(routes.Index, counterHdl.GetCounter)
-		r.Get(routes.IModal, counterHdl.GetCounterModal)
+		r.Get(routes.Index, exampleHdl.GetExample)
+		r.Get(routes.IExampleModal, exampleHdl.GetExampleModal)
+		r.Get(routes.IExampleToast, exampleHdl.GetExampleToast)
 		r.Post(routes.ILogout, authHdl.PostLogout)
 	})
 

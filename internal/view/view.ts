@@ -1,9 +1,9 @@
 import "./view.css";
 import Alpine from "alpinejs";
 import focus from "@alpinejs/focus";
-import modalComponent from "./modal";
-import counterComponent from "./counter";
+import modal from "./modal";
 import htmx from "htmx.org";
+import toast from "./toast";
 
 declare global {
     interface Window {
@@ -14,8 +14,8 @@ declare global {
 
 Alpine.plugin(focus);
 
-Alpine.data("modal", modalComponent);
-Alpine.data("counter", counterComponent);
+Alpine.data("modal", modal);
+Alpine.data("toast", toast);
 
 window.htmx = htmx;
 window.Alpine = Alpine;
