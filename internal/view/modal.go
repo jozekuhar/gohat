@@ -9,11 +9,7 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-const (
-	idModal         = "modal"
-	EventOpenModal  = "open-modal"
-	EventCloseModal = "close-modal"
-)
+const idModalPortal = "modal-portal"
 
 type modal struct {
 	icon *icon
@@ -27,56 +23,68 @@ func newModal() *modal {
 
 func (v *modal) container() g.Node {
 	return h.Div(
-		x.Data("modal"),
-		x.Show("show"),
-		x.On(fmt.Sprintf("%s.window", EventOpenModal), "open($event)"),
-		x.On(fmt.Sprintf("%s.window", EventCloseModal), "close()"),
-		x.On("keydown.escape.window.prevent.stop", "close()"),
-		h.Style("display: none"),
-		h.Class("overflow-y-auto fixed inset-0"),
-		h.Div(
-			x.Show("show"),
-			x.Transition(".opacity"),
-			h.Class("fixed inset-0 bg-gray-950/15"),
-		),
-		h.Div(
-			x.Show("show"),
-			x.Transition(),
-			h.Class("flex relative justify-center items-center p-4 min-h-screen"),
-			h.Div(
-				h.ID(idModal),
-				h.Class(
-					"relative p-6 max-w-xl bg-white rounded-lg border border-gray-200 shadow-sm min-w-96",
-				),
-			),
-		),
+		h.ID("modal-portal"),
 	)
 }
 
-func (v *modal) content(title string, content g.Node) g.Node {
+func (v *modal) fragment(title string, content g.Node) g.Node {
+	titleID := "modal-title"
+
 	return g.El(
 		"hx-partial",
 		hx.Swap("innerHTML"),
-		hx.Target(fmt.Sprintf("#%s", idModal)),
-		g.Attr("x-trap.inert.noscroll", "show"),
+		hx.Target(fmt.Sprintf("#%s", idModalPortal)),
 		h.Div(
-			x.On("click.outside", "close()"),
+			x.Cloak(),
+			x.Data("modal"),
+			x.Show("show"),
+			x.On("keydown.escape.window.prevent.stop", "destroy()"),
+			h.Style("display: none"),
+
+			h.Class("overflow-y-auto fixed inset-0"),
+			h.Role("dialog"),
+			h.Aria("modal", "true"),
+			h.Aria("labelledby", titleID),
 			h.Div(
-				h.Class("flex gap-8 justify-between items-center"),
-				h.H1(
-					h.Class("text-sm font-medium"),
-					g.Text(title),
-				),
-				h.Button(
-					x.On("click", "close()"),
-					v.icon.xMark("size-3 fill-gray-950"),
+				x.Show("show"),
+				x.Transition(".opacity"),
+				h.Class("fixed inset-0 bg-gray-950/15"),
+			),
+			h.Div(
+				x.Show("show"),
+				x.Transition(),
+				h.Class("flex relative justify-center items-center p-4 min-h-screen"),
+				h.Div(
+					x.On("click.outside", "destroy()"),
+					g.Attr("x-trap.inert.noscroll", "show"),
+					h.Class(
+						"relative p-6 max-w-xl bg-white rounded-lg border border-gray-100 shadow-sm min-w-96",
+					),
+					h.Div(
+						h.Class("flex gap-8 justify-between items-center"),
+						h.H2(
+							h.ID(titleID),
+							h.Class("text-base font-medium"),
+							g.Text(title),
+						),
+						h.Button(
+							x.On("click", "destroy()"),
+							h.Class(
+								"relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 before:content-[''] before:absolute before:-inset-2",
+							),
+							h.Div(
+								h.Class("flex justify-center items-center size-10"),
+								v.icon.xMark("size-3.5 fill-gray-400"),
+							),
+						),
+					),
+					content,
 				),
 			),
-			content,
 		),
 	)
 }
 
-func (v *modal) xOnClickClose() g.Node {
-	return x.On("click", "close()")
+func (v *modal) onClose() g.Node {
+	return x.On("click", "destroy()")
 }

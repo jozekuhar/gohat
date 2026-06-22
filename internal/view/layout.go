@@ -10,15 +10,15 @@ import (
 )
 
 type layout struct {
-	modal     *modal
 	toast     *toast
+	modal     *modal
 	component *component
 }
 
 func newLayout() *layout {
 	return &layout{
-		modal:     newModal(),
 		toast:     newToast(),
+		modal:     newModal(),
 		component: newComponent(),
 	}
 }
@@ -68,9 +68,9 @@ func (v *layout) navbar() g.Node {
 			h.Ul(
 				h.Li(
 					v.component.primaryButton(
+						"Logout",
 						hx.Post(routes.ILogout),
 						hx.Swap("none"),
-						g.Text("Logout"),
 					),
 				),
 			),

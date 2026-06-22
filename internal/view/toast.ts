@@ -3,7 +3,7 @@ import { AlpineComponent } from "alpinejs";
 interface Toast {
     show: boolean;
     init(): void;
-    remove(): void;
+    destroy(): void;
 }
 
 export default function toast(): AlpineComponent<Toast> {
@@ -13,9 +13,9 @@ export default function toast(): AlpineComponent<Toast> {
             this.$nextTick(() => {
                 this.show = true;
             });
-            setTimeout(() => this.remove(), 2000);
+            setTimeout(() => this.destroy(), 10000);
         },
-        remove() {
+        destroy() {
             this.show = false;
             setTimeout(() => this.$root.remove(), 500);
         },

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant htmx-request '&.htmx-request';
+
 [x-cloak] {
     display: none !important;
 }

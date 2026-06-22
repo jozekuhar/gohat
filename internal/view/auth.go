@@ -25,9 +25,9 @@ func (v *Auth) LoginPage() g.Node {
 		h.Main(
 			h.Class("flex justify-center items-center h-screen"),
 			v.component.primaryButton(
+				"Login with Google",
 				hx.Get(routes.ILoginGoogle),
 				hx.Swap("none"),
-				g.Text("Login with Google"),
 			),
 		),
 	)

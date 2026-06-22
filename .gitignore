@@ -3,5 +3,5 @@ node_modules/
 static/dist/
 tmp/
 bin/
-
+log/
 .env

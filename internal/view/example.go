@@ -30,24 +30,30 @@ func (v *Example) ExamplePage() g.Node {
 		h.Main(
 			h.Class("flex gap-4 px-6 mx-auto max-w-7xl"),
 			v.component.primaryButton(
+				"Open modal",
 				hx.Get(routes.IExampleModal),
 				hx.Swap("none"),
 				h.Type("button"),
-				g.Text("Open modal"),
 			),
 			v.component.primaryButton(
+				"Create toast",
 				hx.Get(routes.IExampleToast),
 				hx.Swap("none"),
 				h.Type("button"),
-				g.Text("Create toast"),
+			),
+			v.component.primaryButton(
+				"Long request",
+				hx.Get(routes.IExampleLongRequest),
+				hx.Swap("none"),
+				h.Type("button"),
 			),
 		),
 	)
 }
 
 func (v *Example) ExampleModalContent() g.Node {
-	return v.modal.content(
-		"This is title",
+	return v.modal.fragment(
+		"This is modal title",
 		h.Div(
 			h.Class("mt-4 space-y-4"),
 			h.P(
@@ -59,12 +65,12 @@ func (v *Example) ExampleModalContent() g.Node {
 			h.Div(
 				h.Class("flex gap-2 justify-end"),
 				v.component.outlineButton(
-					v.modal.xOnClickClose(),
-					g.Text("Cancel"),
+					"Cancel",
+					v.modal.onClose(),
 				),
 				v.component.primaryButton(
+					"Submit",
 					x.On("click", "alert('submit')"),
-					g.Text("Submit"),
 				),
 			),
 		),
@@ -72,7 +78,7 @@ func (v *Example) ExampleModalContent() g.Node {
 }
 
 func (v *Example) ExampleToastContent() g.Node {
-	return v.toast.content(
+	return v.toast.fragment(
 		"Task succesfully shipped",
 		h.Div(
 			h.Class("text-sm"),

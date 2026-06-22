@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"log/slog"
 	"net/http"
 
 	"gohat/internal/handler"
@@ -12,6 +11,7 @@ import (
 	"gohat/internal/repository"
 	"gohat/internal/service"
 	"gohat/internal/shared/config"
+	"gohat/internal/shared/logger"
 	"gohat/internal/shared/routes"
 	"gohat/internal/view"
 
@@ -26,7 +26,7 @@ func main() {
 		log.Panicf("loading config: %s", err)
 	}
 
-	logger := slog.Default()
+	logger := logger.Init(cfg.Debug)
 
 	pool, err := postgres.LoadPool(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -54,7 +54,7 @@ func main() {
 	staticHdl := handler.NewStatic()
 	fallbackHdl := handler.NewFallback()
 	authHdl := handler.NewAuth(cfg, logger, authSrv)
-	exampleHdl := handler.NewExample()
+	exampleHdl := handler.NewExample(logger)
 
 	authMdw := middleware.NewAuth(logger, authSrv)
 
@@ -76,6 +76,7 @@ func main() {
 		r.Get(routes.Index, exampleHdl.GetExample)
 		r.Get(routes.IExampleModal, exampleHdl.GetExampleModal)
 		r.Get(routes.IExampleToast, exampleHdl.GetExampleToast)
+		r.Get(routes.IExampleLongRequest, exampleHdl.GetExampleLongRequest)
 		r.Post(routes.ILogout, authHdl.PostLogout)
 	})
 

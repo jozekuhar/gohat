@@ -10,12 +10,13 @@ const (
 )
 
 const (
-	Index         = "/"
-	IExampleModal = "/i/counter/modal"
-	IExampleToast = "/i/counter/toast"
-	Login         = "/login"
-	ILoginGoogle  = "/i/login/google"
-	ILogout       = "/i/logout"
+	Index               = "/"
+	IExampleModal       = "/i/example/modal"
+	IExampleToast       = "/i/example/toast"
+	IExampleLongRequest = "/i/example/long-request"
+	Login               = "/login"
+	ILoginGoogle        = "/i/login/google"
+	ILogout             = "/i/logout"
 )
 
 var ILoginGoogleCallback = ""

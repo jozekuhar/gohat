@@ -1,26 +1,24 @@
 import { AlpineComponent } from "alpinejs";
 
-interface ModalEventDetail {
-    title: string;
-}
-
 interface Modal {
     show: boolean;
-    title: string;
-    open(e: CustomEvent<ModalEventDetail>): void;
-    close(): void;
+    init(): void;
+    destroy(): void;
 }
 
 export default function modal(): AlpineComponent<Modal> {
     return {
         show: false,
-        title: "",
-        open(e) {
-            this.title = e.detail.title;
-            this.show = true;
+        init() {
+            this.$nextTick(() => {
+                this.show = true;
+            });
         },
-        close() {
+        destroy() {
             this.show = false;
+            setTimeout(() => {
+                this.$root.remove();
+            }, 500);
         },
     };
 }
