@@ -13,3 +13,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `users` and `sessions` sql table for user management.
 - File logger added with debug argument.
 - Justfile added with formatting included rustywind for tailwindcss.
+- Added `clock` package for universal UTC access.

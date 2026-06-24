@@ -10,6 +10,7 @@ import (
 	"gohat/internal/provider/postgres"
 	"gohat/internal/repository"
 	"gohat/internal/service"
+	"gohat/internal/shared/clock"
 	"gohat/internal/shared/config"
 	"gohat/internal/shared/logger"
 	"gohat/internal/shared/routes"
@@ -27,6 +28,8 @@ func main() {
 	}
 
 	logger := logger.Init(cfg.Debug)
+
+	systemClock := clock.NewSystemClock()
 
 	pool, err := postgres.LoadPool(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -54,7 +57,7 @@ func main() {
 	staticHdl := handler.NewStatic()
 	fallbackHdl := handler.NewFallback()
 	authHdl := handler.NewAuth(cfg, logger, authSrv)
-	exampleHdl := handler.NewExample(logger)
+	exampleHdl := handler.NewExample(logger, systemClock)
 
 	authMdw := middleware.NewAuth(logger, authSrv)
 

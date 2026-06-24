@@ -1,6 +1,9 @@
 package view
 
 import (
+	"fmt"
+	"time"
+
 	"gohat/internal/shared/routes"
 
 	x "github.com/glsubri/gomponents-alpine"
@@ -25,27 +28,34 @@ func NewExample() *Example {
 	}
 }
 
-func (v *Example) ExamplePage() g.Node {
+func (v *Example) ExamplePage(currentTime time.Time) g.Node {
+	fmt.Println(currentTime)
 	return v.layout.Auth(
 		h.Main(
-			h.Class("flex gap-4 px-6 mx-auto max-w-7xl"),
-			v.component.primaryButton(
-				"Open modal",
-				hx.Get(routes.IExampleModal),
-				hx.Swap("none"),
-				h.Type("button"),
+			h.Class("px-6 mx-auto space-y-4 max-w-7xl"),
+			h.Div(
+				h.Span(g.Textf("Current date is: %s", currentTime.Format("02.01.2006"))),
 			),
-			v.component.primaryButton(
-				"Create toast",
-				hx.Get(routes.IExampleToast),
-				hx.Swap("none"),
-				h.Type("button"),
-			),
-			v.component.primaryButton(
-				"Long request",
-				hx.Get(routes.IExampleLongRequest),
-				hx.Swap("none"),
-				h.Type("button"),
+			h.Div(
+				h.Class("flex gap-4"),
+				v.component.primaryButton(
+					"Open modal",
+					hx.Get(routes.IExampleModal),
+					hx.Swap("none"),
+					h.Type("button"),
+				),
+				v.component.primaryButton(
+					"Create toast",
+					hx.Get(routes.IExampleToast),
+					hx.Swap("none"),
+					h.Type("button"),
+				),
+				v.component.primaryButton(
+					"Long request",
+					hx.Get(routes.IExampleLongRequest),
+					hx.Swap("none"),
+					h.Type("button"),
+				),
 			),
 		),
 	)

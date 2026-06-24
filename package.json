@@ -11,7 +11,7 @@
         "rustywind": "^0.24.3",
         "tailwindcss": "^4.3.1",
         "typescript": "^6.0.3",
-        "vite": "^8.0.16"
+        "vite": "^8.1.0"
     },
     "prettier": {
         "tabWidth": 4
