@@ -15,5 +15,8 @@
     },
     "prettier": {
         "tabWidth": 4
+    },
+    "dependencies": {
+        "htmx-ext-ws": "^2.0.4"
     }
 }

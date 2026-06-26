@@ -14,3 +14,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File logger added with debug argument.
 - Justfile added with formatting included rustywind for tailwindcss.
 - Added `clock` package for universal UTC access.
+- Added `sse` example with HTMX.

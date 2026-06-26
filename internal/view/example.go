@@ -12,6 +12,8 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
+const idSSEContent = "sse-content"
+
 type Example struct {
 	layout    *layout
 	modal     *modal
@@ -56,7 +58,15 @@ func (v *Example) ExamplePage(currentTime time.Time) g.Node {
 					hx.Swap("none"),
 					h.Type("button"),
 				),
+				v.component.primaryButton(
+					"SSE Request",
+					g.Attr("hx-sse:connect", routes.IExampleSSERequest),
+					hx.Target(fmt.Sprintf("#%s", idSSEContent)),
+					hx.Swap("append"),
+					h.Type("button"),
+				),
 			),
+			v.exampleSSEContent(),
 		),
 	)
 }
@@ -96,5 +106,11 @@ func (v *Example) ExampleToastContent() g.Node {
 				"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
 			),
 		),
+	)
+}
+
+func (v *Example) exampleSSEContent() g.Node {
+	return h.Div(
+		h.ID(idSSEContent),
 	)
 }

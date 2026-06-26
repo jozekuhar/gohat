@@ -3,6 +3,7 @@ import Alpine from "alpinejs";
 import focus from "@alpinejs/focus";
 import modal from "./modal";
 import htmx from "htmx.org";
+import "htmx.org/dist/ext/hx-sse";
 import toast from "./toast";
 import { button } from "./component";
 

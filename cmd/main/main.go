@@ -80,6 +80,7 @@ func main() {
 		r.Get(routes.IExampleModal, exampleHdl.GetExampleModal)
 		r.Get(routes.IExampleToast, exampleHdl.GetExampleToast)
 		r.Get(routes.IExampleLongRequest, exampleHdl.GetExampleLongRequest)
+		r.Get(routes.IExampleSSERequest, exampleHdl.GetExampleSSERequest)
 		r.Post(routes.ILogout, authHdl.PostLogout)
 	})
 

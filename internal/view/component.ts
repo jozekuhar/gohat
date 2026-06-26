@@ -20,7 +20,6 @@ export function button(): AlpineComponent<Button> {
             this.loadingTimer = setTimeout(() => {
                 this.showLoading = true;
             }, 150);
-            console.log(this.loadingTimer);
         },
 
         clearLoading() {
