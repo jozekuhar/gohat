@@ -3,8 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"gohat/internal/shared/web"
-	"gohat/internal/view"
+	"mimokocke/internal/web/view"
 )
 
 type Fallback struct {
@@ -18,9 +17,9 @@ func NewFallback() *Fallback {
 }
 
 func (h *Fallback) GetNotFound(w http.ResponseWriter, r *http.Request) {
-	web.Render(w, h.fallbackView.NotFoundPage())
+	render(w, h.fallbackView.NotFoundPage())
 }
 
 func (h *Fallback) GetMethodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	web.Render(w, h.fallbackView.MethodNotAllowedPage())
+	render(w, h.fallbackView.MethodNotAllowedPage())
 }

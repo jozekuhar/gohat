@@ -41,7 +41,7 @@ func (v *modal) fragment(title string, content g.Node) g.Node {
 			x.On("keydown.escape.window.prevent.stop", "destroy()"),
 			h.Style("display: none"),
 
-			h.Class("overflow-y-auto fixed inset-0"),
+			h.Class("fixed inset-0 overflow-y-auto"),
 			h.Role("dialog"),
 			h.Aria("modal", "true"),
 			h.Aria("labelledby", titleID),
@@ -53,15 +53,15 @@ func (v *modal) fragment(title string, content g.Node) g.Node {
 			h.Div(
 				x.Show("show"),
 				x.Transition(),
-				h.Class("flex relative justify-center items-center p-4 min-h-screen"),
+				h.Class("relative flex min-h-screen items-center justify-center p-4"),
 				h.Div(
 					x.On("click.outside", "destroy()"),
 					g.Attr("x-trap.inert.noscroll", "show"),
 					h.Class(
-						"relative p-6 max-w-xl bg-white rounded-lg border border-gray-100 shadow-sm min-w-96",
+						"relative max-w-xl min-w-96 rounded-lg border border-gray-100 bg-white p-6 shadow-sm",
 					),
 					h.Div(
-						h.Class("flex gap-8 justify-between items-center"),
+						h.Class("flex items-center justify-between gap-8"),
 						h.H2(
 							h.ID(titleID),
 							h.Class("text-base font-medium"),
@@ -70,10 +70,10 @@ func (v *modal) fragment(title string, content g.Node) g.Node {
 						h.Button(
 							x.On("click", "destroy()"),
 							h.Class(
-								"relative rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 before:content-[''] before:absolute before:-inset-2",
+								"relative rounded-full before:absolute before:-inset-2 before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
 							),
 							h.Div(
-								h.Class("flex justify-center items-center size-10"),
+								h.Class("flex size-10 items-center justify-center"),
 								v.icon.xMark("size-3.5 fill-gray-400"),
 							),
 						),

@@ -15,7 +15,7 @@ type Config struct {
 	DatabaseURL        string
 	GoogleClientID     string
 	GoogleClientSecret string
-	GoogleRedirectURL  string
+	ResendAPIKey       string
 }
 
 func LoadConfig() (*Config, error) {
@@ -50,7 +50,7 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	if cfg.GoogleRedirectURL, err = loadStringEnv("GOOGLE_REDIRECT_URL"); err != nil {
+	if cfg.ResendAPIKey, err = loadStringEnv("RESEND_API_KEY"); err != nil {
 		return nil, err
 	}
 
@@ -60,7 +60,7 @@ func LoadConfig() (*Config, error) {
 func loadStringEnv(key string) (string, error) {
 	value, ok := os.LookupEnv(key)
 	if !ok {
-		return "", fmt.Errorf("required env variable: %s", key)
+		return "", fmt.Errorf("required string env variable: %s", key)
 	}
 	return value, nil
 }
@@ -68,7 +68,7 @@ func loadStringEnv(key string) (string, error) {
 func loadBoolEnv(key string) (bool, error) {
 	valueStr, ok := os.LookupEnv(key)
 	if !ok {
-		return false, fmt.Errorf("required env variable: %s", key)
+		return false, fmt.Errorf("required bool env variable: %s", key)
 	}
 
 	value, err := strconv.ParseBool(valueStr)

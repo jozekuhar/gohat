@@ -5,16 +5,20 @@ import (
 	"log"
 	"net/http"
 
-	"gohat/internal/handler"
-	"gohat/internal/middleware"
-	"gohat/internal/provider/postgres"
-	"gohat/internal/repository"
-	"gohat/internal/service"
-	"gohat/internal/shared/clock"
-	"gohat/internal/shared/config"
-	"gohat/internal/shared/logger"
-	"gohat/internal/shared/routes"
-	"gohat/internal/view"
+	"mimokocke/internal/auth"
+	"mimokocke/internal/channel"
+	"mimokocke/internal/middleware"
+	"mimokocke/internal/provider/postgres"
+	"mimokocke/internal/shared/clock"
+	"mimokocke/internal/shared/config"
+	"mimokocke/internal/shared/logger"
+	"mimokocke/internal/shared/routes"
+	"mimokocke/internal/tenant"
+	"mimokocke/internal/web/handler"
+	"mimokocke/internal/web/view"
+
+	_ "github.com/goforj/godump"
+	"github.com/resend/resend-go/v3"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -30,36 +34,38 @@ func main() {
 	logger := logger.Init(cfg.Debug)
 
 	systemClock := clock.NewSystemClock()
+	_ = systemClock
 
 	pool, err := postgres.LoadPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Panicf("loading postgres: %s", err)
 	}
 
+	resendClient := resend.NewClient(cfg.ResendAPIKey)
+
 	err = view.LoadManifest()
 	if err != nil {
 		log.Panicf("loading manifest: %s", err)
 	}
 
-	err = routes.Load(cfg.GoogleRedirectURL)
-	if err != nil {
-		log.Panicf("loading routes: %s", err)
-	}
-
 	r := chi.NewRouter()
 
-	userRepo := repository.NewUser(pool)
-	authRepo := repository.NewAuth(pool)
+	tenantRepo := tenant.NewRepository(pool)
+	authRepo := auth.NewRepository(pool)
+	channelRepo := channel.NewRepository(pool)
 
-	userSrv := service.NewUser(userRepo)
-	authSrv := service.NewAuth(cfg, authRepo, userSrv)
+	tenantSrv := tenant.NewService(logger, resendClient, tenantRepo)
+	authSrv := auth.NewService(cfg, authRepo)
+	channelSrv := channel.NewService(channelRepo)
 
 	staticHdl := handler.NewStatic()
 	fallbackHdl := handler.NewFallback()
-	authHdl := handler.NewAuth(cfg, logger, authSrv)
-	exampleHdl := handler.NewExample(logger, systemClock)
+	tenantHdl := handler.NewTenantHandler(logger, tenantSrv)
+	authHdl := handler.NewAuthHandler(cfg, logger, authSrv)
+	channelHdl := handler.NewChanneHandler(logger, channelSrv)
 
-	authMdw := middleware.NewAuth(logger, authSrv)
+	tenantMdw := middleware.NewTenantMiddleware(logger, tenantSrv)
+	authMdw := middleware.NewAuthMiddleware(logger, authSrv)
 
 	r.Group(func(r chi.Router) {
 		r.Get(routes.Static, staticHdl.GetStatic)
@@ -76,12 +82,18 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(authMdw.RequireAuth)
-		r.Get(routes.Index, exampleHdl.GetExample)
-		r.Get(routes.IExampleModal, exampleHdl.GetExampleModal)
-		r.Get(routes.IExampleToast, exampleHdl.GetExampleToast)
-		r.Get(routes.IExampleLongRequest, exampleHdl.GetExampleLongRequest)
-		r.Get(routes.IExampleSSERequest, exampleHdl.GetExampleSSERequest)
 		r.Post(routes.ILogout, authHdl.PostLogout)
+		r.Get(routes.Index, tenantHdl.GetOrganizations)
+		r.Post(routes.HXOrganizationCreate, tenantHdl.PostCreateOrganization)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authMdw.RequireAuth)
+		r.Use(tenantMdw.RequireMembership)
+		r.Get(routes.DashboardPath, tenantHdl.GetDashboard)
+		r.Get(routes.MembershipsPath, tenantHdl.GetMemberships)
+		r.Get(routes.MembershipsCreatePath, tenantHdl.PostCreateInvitation)
+		r.Get(routes.ChannelsPath, channelHdl.GetChannels)
 	})
 
 	if err := http.ListenAndServe(cfg.Port, r); err != nil {

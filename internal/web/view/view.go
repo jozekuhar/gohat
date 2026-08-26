@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gohat"
+	"mimokocke"
 
 	g "maragu.dev/gomponents"
 	h "maragu.dev/gomponents/html"
@@ -23,7 +23,7 @@ type viteManifest map[string]viteEntry
 var vm = make(viteManifest)
 
 func LoadManifest() error {
-	data, err := gohat.Static.ReadFile("static/dist/manifest.json")
+	data, err := mimokocke.Static.ReadFile("static/dist/manifest.json")
 	if err != nil {
 		return err
 	}

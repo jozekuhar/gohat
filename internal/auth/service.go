@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"context"
@@ -7,43 +7,56 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"uuid"
 
-	"gohat/internal/model"
-	"gohat/internal/repository"
-	"gohat/internal/shared/config"
+	"mimokocke/internal/shared/config"
+	"mimokocke/internal/shared/routes"
 
-	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
-type Auth struct {
+type Service struct {
 	cfg               *config.Config
 	googleOauthConfig *oauth2.Config
-	authRepo          *repository.Auth
-	userSrv           *User
+	authRepo          *repository
 }
 
-func NewAuth(cfg *config.Config, authRepo *repository.Auth, userSrv *User) *Auth {
+func NewService(cfg *config.Config, authRepo *repository) *Service {
+	redirectURL := fmt.Sprintf("http://%s%s", cfg.Host, routes.ILoginGoogleCallback)
+
 	googleOauthConfig := &oauth2.Config{
 		ClientID:     cfg.GoogleClientID,
 		ClientSecret: cfg.GoogleClientSecret,
-		RedirectURL:  cfg.GoogleRedirectURL,
+		RedirectURL:  redirectURL,
 		Endpoint:     google.Endpoint,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",
 		},
 	}
-	return &Auth{
+	return &Service{
 		cfg:               cfg,
 		googleOauthConfig: googleOauthConfig,
 		authRepo:          authRepo,
-		userSrv:           userSrv,
 	}
 }
 
-func (s *Auth) GenerateGoogleLoginURL(ctx context.Context) string {
+func (u *Service) GetOrCreateUser(
+	ctx context.Context,
+	email string,
+	googleID string,
+) (*User, error) {
+	id := uuid.NewV7()
+
+	user, err := u.authRepo.GetOrCreateUserWithGoogleID(ctx, id, email, googleID)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *Service) GenerateGoogleLoginURL(ctx context.Context) string {
 	return s.googleOauthConfig.AuthCodeURL("todo")
 }
 
@@ -58,7 +71,10 @@ type googleUserInfo struct {
 	VerifiedEmail bool   `json:"verified_email"`
 }
 
-func (s *Auth) ProcessGoogleLogin(ctx context.Context, code, state string) (*model.Session, error) {
+func (s *Service) ProcessGoogleLogin(
+	ctx context.Context,
+	code, state string,
+) (*Session, error) {
 	token, err := s.googleOauthConfig.Exchange(ctx, code)
 	if err != nil {
 		return nil, err
@@ -85,15 +101,12 @@ func (s *Auth) ProcessGoogleLogin(ctx context.Context, code, state string) (*mod
 		return nil, fmt.Errorf("user email is not verified")
 	}
 
-	user, err := s.userSrv.GetOrCreateUser(ctx, userInfo.Email, userInfo.ID)
+	user, err := s.GetOrCreateUser(ctx, userInfo.Email, userInfo.ID)
 	if err != nil {
 		return nil, fmt.Errorf("get or create user: %w", err)
 	}
 
-	sessionID, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
-	}
+	sessionID := uuid.NewV7()
 	expiresAt := time.Now().UTC().Add(time.Hour * 24 * 14)
 	session, err := s.authRepo.CreateSession(ctx, sessionID, user.ID, expiresAt)
 	if err != nil {
@@ -103,7 +116,7 @@ func (s *Auth) ProcessGoogleLogin(ctx context.Context, code, state string) (*mod
 	return session, nil
 }
 
-func (s *Auth) VerifySession(ctx context.Context, sessionID string) (*model.Session, error) {
+func (s *Service) VerifySession(ctx context.Context, sessionID string) (*Session, error) {
 	id, err := uuid.Parse(sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("parsing session id: %w", err)
@@ -121,7 +134,7 @@ func (s *Auth) VerifySession(ctx context.Context, sessionID string) (*model.Sess
 	return session, err
 }
 
-func (s *Auth) Logout(ctx context.Context, sessionIDStr string) error {
+func (s *Service) Logout(ctx context.Context, sessionIDStr string) error {
 	sessionID, err := uuid.Parse(sessionIDStr)
 	if err != nil {
 		return err

@@ -4,25 +4,24 @@ import (
 	"log/slog"
 	"net/http"
 
-	"gohat/internal/service"
-	"gohat/internal/shared/ctxutil"
-	"gohat/internal/shared/routes"
-	"gohat/internal/shared/session"
+	"mimokocke/internal/auth"
+	"mimokocke/internal/shared/routes"
+	"mimokocke/internal/shared/session"
 )
 
-type Auth struct {
+type authMiddleware struct {
 	logger  *slog.Logger
-	authSrv *service.Auth
+	authSrv *auth.Service
 }
 
-func NewAuth(logger *slog.Logger, authSrv *service.Auth) *Auth {
-	return &Auth{
+func NewAuthMiddleware(logger *slog.Logger, authSrv *auth.Service) *authMiddleware {
+	return &authMiddleware{
 		logger:  logger,
 		authSrv: authSrv,
 	}
 }
 
-func (m *Auth) RequireGuest(handler http.Handler) http.Handler {
+func (m *authMiddleware) RequireGuest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionIDStr, err := session.GetCookie(r)
 		if err != nil {
@@ -42,7 +41,7 @@ func (m *Auth) RequireGuest(handler http.Handler) http.Handler {
 	})
 }
 
-func (m *Auth) RequireAuth(handler http.Handler) http.Handler {
+func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionIDStr, err := session.GetCookie(r)
 		if err != nil {
@@ -58,7 +57,7 @@ func (m *Auth) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := ctxutil.WithUserID(r.Context(), s.UserID)
+		ctx := auth.WithUserID(r.Context(), s.UserID)
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

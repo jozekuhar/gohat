@@ -1,7 +1,7 @@
 package view
 
 import (
-	"gohat/internal/shared/routes"
+	"mimokocke/internal/shared/routes"
 
 	g "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
@@ -23,7 +23,7 @@ func NewAuth() *Auth {
 func (v *Auth) LoginPage() g.Node {
 	return v.layout.Guest(
 		h.Main(
-			h.Class("flex justify-center items-center h-screen"),
+			h.Class("flex h-screen items-center justify-center"),
 			v.component.primaryButton(
 				"Login with Google",
 				hx.Get(routes.ILoginGoogle),

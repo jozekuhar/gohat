@@ -1,7 +1,7 @@
 package view
 
 import (
-	"gohat/internal/shared/routes"
+	"mimokocke/internal/shared/routes"
 
 	g "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
@@ -10,14 +10,14 @@ import (
 )
 
 type layout struct {
-	toast     *toast
+	toast     *Toast
 	modal     *modal
 	component *component
 }
 
 func newLayout() *layout {
 	return &layout{
-		toast:     newToast(),
+		toast:     NewToast(),
 		modal:     newModal(),
 		component: newComponent(),
 	}
@@ -55,7 +55,7 @@ func (v *layout) base(children ...g.Node) g.Node {
 			h.Script(h.Type("module"), h.Src(getAssetPath("view"))),
 		},
 		HTMLAttrs: g.Group{
-			h.Class("scroll-smooth scrollbar-gutter-stable"),
+			h.Class("scrollbar-gutter-stable scroll-smooth"),
 		},
 	})
 }
@@ -64,7 +64,7 @@ func (v *layout) navbar() g.Node {
 	return h.Header(
 		h.Class("mx-auto max-w-7xl"),
 		h.Nav(
-			h.Class("flex justify-end items-center py-2 px-4"),
+			h.Class("flex items-center justify-end px-4 py-2"),
 			h.Ul(
 				h.Li(
 					v.component.primaryButton(

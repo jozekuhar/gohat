@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"gohat/internal/shared/routes"
+	"mimokocke/internal/shared/routes"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -17,7 +17,6 @@ const idSSEContent = "sse-content"
 type Example struct {
 	layout    *layout
 	modal     *modal
-	toast     *toast
 	component *component
 }
 
@@ -25,16 +24,14 @@ func NewExample() *Example {
 	return &Example{
 		layout:    newLayout(),
 		modal:     newModal(),
-		toast:     newToast(),
 		component: newComponent(),
 	}
 }
 
 func (v *Example) ExamplePage(currentTime time.Time) g.Node {
-	fmt.Println(currentTime)
 	return v.layout.Auth(
 		h.Main(
-			h.Class("px-6 mx-auto space-y-4 max-w-7xl"),
+			h.Class("mx-auto max-w-7xl space-y-4 px-6"),
 			h.Div(
 				h.Span(g.Textf("Current date is: %s", currentTime.Format("02.01.2006"))),
 			),
@@ -43,12 +40,6 @@ func (v *Example) ExamplePage(currentTime time.Time) g.Node {
 				v.component.primaryButton(
 					"Open modal",
 					hx.Get(routes.IExampleModal),
-					hx.Swap("none"),
-					h.Type("button"),
-				),
-				v.component.primaryButton(
-					"Create toast",
-					hx.Get(routes.IExampleToast),
 					hx.Swap("none"),
 					h.Type("button"),
 				),
@@ -83,7 +74,7 @@ func (v *Example) ExampleModalContent() g.Node {
 				),
 			),
 			h.Div(
-				h.Class("flex gap-2 justify-end"),
+				h.Class("flex justify-end gap-2"),
 				v.component.outlineButton(
 					"Cancel",
 					v.modal.onClose(),
@@ -92,18 +83,6 @@ func (v *Example) ExampleModalContent() g.Node {
 					"Submit",
 					x.On("click", "alert('submit')"),
 				),
-			),
-		),
-	)
-}
-
-func (v *Example) ExampleToastContent() g.Node {
-	return v.toast.fragment(
-		"Task succesfully shipped",
-		h.Div(
-			h.Class("text-sm"),
-			g.Text(
-				"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
 			),
 		),
 	)

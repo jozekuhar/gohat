@@ -1,4 +1,4 @@
-package web
+package handler
 
 import (
 	"log"
@@ -7,7 +7,7 @@ import (
 	g "maragu.dev/gomponents"
 )
 
-func Render(w http.ResponseWriter, n g.Node) {
+func render(w http.ResponseWriter, n g.Node) {
 	if err := n.Render(w); err != nil {
 		log.Panicf("rendering node")
 	}

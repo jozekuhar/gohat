@@ -4,25 +4,24 @@ import (
 	"log/slog"
 	"net/http"
 
-	"gohat/internal/service"
-	"gohat/internal/shared/config"
-	"gohat/internal/shared/routes"
-	"gohat/internal/shared/session"
-	"gohat/internal/shared/web"
-	"gohat/internal/view"
+	"mimokocke/internal/auth"
+	"mimokocke/internal/shared/config"
+	"mimokocke/internal/shared/routes"
+	"mimokocke/internal/shared/session"
+	"mimokocke/internal/web/view"
 
 	hx "maragu.dev/gomponents-htmx/http"
 )
 
-type Auth struct {
+type authHandler struct {
 	cfg      *config.Config
 	logger   *slog.Logger
-	authSrv  *service.Auth
+	authSrv  *auth.Service
 	authView *view.Auth
 }
 
-func NewAuth(cfg *config.Config, logger *slog.Logger, authSrv *service.Auth) *Auth {
-	return &Auth{
+func NewAuthHandler(cfg *config.Config, logger *slog.Logger, authSrv *auth.Service) *authHandler {
+	return &authHandler{
 		cfg:      cfg,
 		logger:   logger,
 		authSrv:  authSrv,
@@ -30,17 +29,17 @@ func NewAuth(cfg *config.Config, logger *slog.Logger, authSrv *service.Auth) *Au
 	}
 }
 
-func (h *Auth) GetLogin(w http.ResponseWriter, r *http.Request) {
-	web.Render(w, h.authView.LoginPage())
+func (h *authHandler) GetLogin(w http.ResponseWriter, r *http.Request) {
+	render(w, h.authView.LoginPage())
 }
 
-func (h *Auth) GetLoginWithGoogle(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) GetLoginWithGoogle(w http.ResponseWriter, r *http.Request) {
 	redirectURL := h.authSrv.GenerateGoogleLoginURL(r.Context())
 	hx.SetRedirect(w.Header(), redirectURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *Auth) GetLoginGoogleCallback(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) GetLoginGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 
@@ -55,7 +54,7 @@ func (h *Auth) GetLoginGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, routes.Index, http.StatusSeeOther)
 }
 
-func (h *Auth) PostLogout(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	sessionIDStr, err := session.GetCookie(r)
 	if err != nil {
 		h.logger.Error("retrieving session cookie", "err", err)

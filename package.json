@@ -1,22 +1,20 @@
 {
     "name": "gohat",
+    "type": "module",
     "devDependencies": {
-        "@alpinejs/focus": "^3.15.12",
-        "@tailwindcss/vite": "^4.3.1",
+        "@alpinejs/focus": "^3.16.3",
+        "@tailwindcss/vite": "^4.3.3",
         "@types/alpinejs": "^3.13.11",
         "@types/alpinejs__focus": "^3.13.4",
-        "alpinejs": "^3.15.12",
+        "alpinejs": "^3.16.3",
         "htmx.org": "4.0.0-beta4",
-        "prettier": "^3.8.4",
-        "rustywind": "^0.24.3",
-        "tailwindcss": "^4.3.1",
-        "typescript": "^6.0.3",
-        "vite": "^8.1.0"
+        "prettier": "^3.9.6",
+        "rustywind": "^0.28.0",
+        "tailwindcss": "^4.3.3",
+        "typescript": "^7.0.2",
+        "vite": "^8.2.2"
     },
     "prettier": {
         "tabWidth": 4
-    },
-    "dependencies": {
-        "htmx-ext-ws": "^2.0.4"
     }
 }

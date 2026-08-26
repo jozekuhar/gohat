@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"gohat"
+	"mimokocke"
 )
 
 type Static struct{}
@@ -13,5 +13,5 @@ func NewStatic() *Static {
 }
 
 func (v *Static) GetStatic(w http.ResponseWriter, r *http.Request) {
-	http.FileServerFS(gohat.Static).ServeHTTP(w, r)
+	http.FileServerFS(mimokocke.Static).ServeHTTP(w, r)
 }
