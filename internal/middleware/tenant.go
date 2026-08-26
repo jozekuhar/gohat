@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -28,6 +29,12 @@ func (m *tenantMiddleware) RequireMembership(handler http.Handler) http.Handler 
 
 		i, err := m.tenantSrv.VerifyMembership(r.Context(), userID, orgSlug)
 		if err != nil {
+			if errors.Is(err, tenant.ErrMembershipNotFound) {
+				// TODO(jozekuhar): return not found page
+				w.WriteHeader(404)
+				w.Write([]byte("not found"))
+				return
+			}
 			m.logger.Error("verifying membership", "err", err)
 			return
 		}

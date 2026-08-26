@@ -46,20 +46,79 @@ func (v *Memberships) MembershipsPage(
 				}),
 			),
 			h.Form(
-				hx.Post(fmt.Sprintf(routes.MembershipsCreate, identity.OrganizationSlug)),
-				h.Class("border"),
-				h.Input(h.Placeholder("owner")),
-				h.Select(
-					h.Option(g.Text("Owner")),
-					h.Option(g.Text("Admin")),
-					h.Option(g.Text("Member")),
+				hx.Post(fmt.Sprintf(routes.Invitations, identity.OrganizationSlug)),
+				hx.Swap("none"),
+				h.Class("border flex flex-col"),
+				h.Input(
+					h.Class("border"),
+					h.Placeholder("First name"),
+					h.Name("FirstName"),
 				),
 				h.Input(
+					h.Class("border"),
+					h.Placeholder("Last name"),
+					h.Name("LastName"),
+				),
+				h.Input(
+					h.Class("border"),
 					h.Placeholder("Email"),
-					h.Name("email"),
+					h.Name("Email"),
+				),
+				h.Select(
+					h.Name("Role"),
+					h.Option(
+						h.Value(string(authz.RoleAdmin)),
+						g.Text("Owner"),
+					),
+					h.Option(
+						h.Value(string(authz.RoleOwner)),
+						g.Text("Admin"),
+					),
+					h.Option(
+						h.Value(string(authz.RoleMember)),
+						h.Selected(),
+						g.Text("Member"),
+					),
+				),
+				h.FieldSet(
+					h.Class("flex flex-col border"),
+					h.Legend(g.Text("Memberships")),
+					h.Label(
+						g.Text("Memberships (Read)"),
+						h.Input(
+							h.Type("checkbox"),
+							h.Name("Permissions"),
+							h.Value(string(authz.MembershipRead)),
+						),
+					),
+					h.Label(
+						g.Text("Memberships (Create)"),
+						h.Input(
+							h.Type("checkbox"),
+							h.Name("Permissions"),
+							h.Value(string(authz.MembershipCreate)),
+						),
+					),
+					h.Label(
+						g.Text("Memberships (Update)"),
+						h.Input(
+							h.Type("checkbox"),
+							h.Name("Permissions"),
+							h.Value(string(authz.MembershipUpdate)),
+						),
+					),
+					h.Label(
+						g.Text("Memberships (Delete)"),
+						h.Input(
+							h.Type("checkbox"),
+							h.Name("Permissions"),
+							h.Value(string(authz.MembershipDelete)),
+						),
+					),
 				),
 				// Permissions
 				h.Button(
+					h.Class("bg-black text-white"),
 					g.Text("Invite membership"),
 				),
 			),

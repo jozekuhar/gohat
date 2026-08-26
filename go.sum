@@ -8,6 +8,8 @@ github.com/glsubri/gomponents-alpine v0.2.2 h1:EiISxbiM1go8J943z+v2jGG5+8c5sFo7u
 github.com/glsubri/gomponents-alpine v0.2.2/go.mod h1:hbjr9/rgZu745kMJ/ulvG5QnwpdRrAdp0EJjb4rcS80=
 github.com/go-chi/chi/v5 v5.2.5 h1:Eg4myHZBjyvJmAFjFvWgrqDTXFyOzjj7YIm3L3mu6Ug=
 github.com/go-chi/chi/v5 v5.2.5/go.mod h1:X7Gx4mteadT3eDOMTsXzmI4/rwUpOwBHLpAfupzFJP0=
+github.com/go-playground/form v3.1.4+incompatible h1:lvKiHVxE2WvzDIoyMnWcjyiBxKt2+uFJyZcPYWsLnjI=
+github.com/go-playground/form v3.1.4+incompatible/go.mod h1:lhcKXfTuhRtIZCIKUeJ0b5F207aeQCPbZU09ScKjwWg=
 github.com/goforj/godump v1.9.1 h1:9OGpb978Ytz3B59d5Yi2PzRYYLid6UkmhYDIDNiF15Y=
 github.com/goforj/godump v1.9.1/go.mod h1:JsuL6AEZfKIU+iR5ewL6iQ2fIuhvLtPmJDH47M9Ptrc=
 github.com/gosimple/slug v1.15.0 h1:wRZHsRrRcs6b0XnxMUBM6WK1U1Vg5B0R7VkIf1Xzobo=

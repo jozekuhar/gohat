@@ -25,8 +25,9 @@ type Service struct {
 
 func NewService(logger *slog.Logger, resendClient *resend.Client, tenantRepo *repository) *Service {
 	return &Service{
-		logger:     logger,
-		tenantRepo: tenantRepo,
+		logger:       logger,
+		resendClient: resendClient,
+		tenantRepo:   tenantRepo,
 	}
 }
 
@@ -46,6 +47,8 @@ func (s *Service) RegisterOrganization(
 	userID uuid.UUID,
 	orgName string,
 	orgSlug string,
+	firstName string,
+	lastName string,
 ) (*Organization, error) {
 	// user can be only part of single organization
 	memberships, err := s.tenantRepo.ListActiveMemberships(ctx, userID)
@@ -89,6 +92,8 @@ func (s *Service) RegisterOrganization(
 		membershipID,
 		organization.ID,
 		userID,
+		firstName,
+		lastName,
 		MembershipRoleOwner,
 		membershipPermissions,
 		MembershipStatusActive,
@@ -112,7 +117,7 @@ func (s *Service) VerifyMembership(
 	userID uuid.UUID,
 	orgSlug string,
 ) (*authz.Identity, error) {
-	i, err := s.tenantRepo.GetIdentity(
+	identity, err := s.tenantRepo.GetIdentity(
 		ctx,
 		userID,
 		orgSlug,
@@ -122,7 +127,7 @@ func (s *Service) VerifyMembership(
 		return nil, err
 	}
 
-	return i, nil
+	return identity, nil
 }
 
 func (s *Service) GetMemberships(
@@ -142,26 +147,52 @@ func (s *Service) GetMemberships(
 func (s *Service) InviteUser(
 	ctx context.Context,
 	identity *authz.Identity,
+	email string,
 ) (*Invitation, error) {
-	// TODO(jozekuhar): Check permissions to invite members (aka createa)
 	if !identity.HasPermission(authz.MembershipCreate) {
 		return nil, fmt.Errorf("you don't have permission to do this thing")
 	}
 
+	tx, err := s.tenantRepo.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("transaction begin: %w", err)
+	}
+	defer func() {
+		err := tx.Rollback(ctx)
+		if err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+			s.logger.Error("rollback error", "err", err)
+		}
+	}()
+
+	token, tokenHash, err := generateInviteToken()
+	if err != nil {
+		return nil, err
+	}
+
+	invitationID := uuid.NewV7()
+	invitation, err := s.tenantRepo.CreateInvitation(ctx, tx, invitationID, tokenHash)
+	if err != nil {
+		return nil, err
+	}
+
+	godump.Dump(invitation)
+
 	params := &resend.SendEmailRequest{
-		From: "invitations@mimokocke.si",
-		To: []string{
-			"joze.kuhar@gajogroup.com",
-		},
-		Subject: "Povabilo",
-		ReplyTo: "support@mimokocke.si", // problem if it is send to us i guess
-		// Html:    "",
-		Text: "Hi, you have been invited",
+		From:    "invites@gajogroup.com",
+		To:      []string{email},
+		Subject: "Invitation",
+		ReplyTo: "support@gajogroup.com",
+		Text:    "Hi, you have been invited to our organization. Token: " + token,
 		Tags: []resend.Tag{
 			{Name: "type", Value: "invite"},
 		},
 	}
 	resp, err := s.resendClient.Emails.Send(params)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit(ctx)
 	if err != nil {
 		return nil, err
 	}

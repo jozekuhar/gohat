@@ -55,14 +55,21 @@ func (v *Dashboard) OrganizationsPage(orgs []tenant.Organization) g.Node {
 					hx.Post(routes.HXOrganizationCreate),
 					hx.Swap("none"),
 					h.Input(
-						h.Name(InputNameOrganizationName),
+						h.Name("Name"),
 						h.Placeholder("Organization name"),
 					),
 					h.Input(
-						h.Name(InputNameOrganizationSlug),
+						h.Name("Slug"),
 						h.Placeholder("Organization slug"),
 					),
-
+					h.Input(
+						h.Name("FirstName"),
+						h.Placeholder("First name"),
+					),
+					h.Input(
+						h.Name("LastName"),
+						h.Placeholder("Last name"),
+					),
 					h.Button(g.Text("Create")),
 				),
 			),

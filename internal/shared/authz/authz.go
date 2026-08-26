@@ -8,9 +8,9 @@ import (
 type role string
 
 const (
-	OwnerRole  role = "owner"
-	AdminRole  role = "admin"
-	MemberRole role = "member"
+	RoleOwner  role = "owner"
+	RoleAdmin  role = "admin"
+	RoleMember role = "member"
 )
 
 type permission string
@@ -33,9 +33,9 @@ const (
 )
 
 var rolePermissions = map[string][]permission{
-	string(OwnerRole):  {},
-	string(AdminRole):  {MembershipRead, MembershipCreate, MembershipUpdate, MembershipDelete},
-	string(MemberRole): {},
+	string(RoleOwner):  {},
+	string(RoleAdmin):  {MembershipRead, MembershipCreate, MembershipUpdate, MembershipDelete},
+	string(RoleMember): {},
 }
 
 type Identity struct {
@@ -47,11 +47,11 @@ type Identity struct {
 
 func (a *Identity) HasPermission(perm permission) bool {
 	// admin check?
-	if a.Role == string(OwnerRole) {
+	if a.Role == string(RoleOwner) {
 		return true
 	}
 
-	if a.Role == string(AdminRole) && slices.Contains(rolePermissions[string(AdminRole)], perm) {
+	if a.Role == string(RoleAdmin) && slices.Contains(rolePermissions[string(RoleAdmin)], perm) {
 		return true
 	}
 

@@ -34,6 +34,8 @@ type Membership struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID
 	UserID         uuid.UUID
+	FirstName      string
+	LastName       string
 	Role           membershipRole
 	Permissions    []string
 	Status         membershipStatus
@@ -45,6 +47,9 @@ type Invitation struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID
 	UserID         uuid.UUID
+	Email          string
+	FirstName      string
+	LastName       string
 	Role           membershipRole
 	Permissions    []string
 	ExpiresAt      time.Time

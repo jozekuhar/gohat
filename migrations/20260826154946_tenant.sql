@@ -1,20 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE users (
-    id UUID PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
-    google_id TEXT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ
-);
-
-CREATE TABLE sessions (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users (id),
-    expires_at TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE organizations (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
@@ -28,6 +13,8 @@ CREATE TABLE memberships (
     id UUID PRIMARY KEY,
     organization_id UUID NOT NULL REFERENCES organizations (id),
     user_id UUID NOT NULL REFERENCES users (id),
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     role TEXT NOT NULL,
     permissions TEXT[],
     status TEXT NOT NULL,
@@ -45,8 +32,12 @@ CREATE TABLE memberships (
 CREATE TABLE invitations (
     id UUID PRIMARY KEY,
     organization_id UUID NOT NULL REFERENCES organizations (id),
+    email TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
     role TEXT NOT NULL,
     permissions TEXT[],
+    token_hash TEXT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT invitations_role_check CHECK (
@@ -57,8 +48,7 @@ CREATE TABLE invitations (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE organization_memberships;
+DROP TABLE invitations;
+DROP TABLE memberships;
 DROP TABLE organizations;
-DROP TABLE sessions;
-DROP TABLE users;
 -- +goose StatementEnd

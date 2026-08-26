@@ -78,13 +78,14 @@ func (r *repository) CreateMembership(
 	ctx context.Context,
 	tx pgx.Tx,
 	id, organizationID, userID uuid.UUID,
+	firstName, lastName string,
 	role membershipRole,
 	permissions []string,
 	status membershipStatus,
 ) (*Membership, error) {
 	stmt := `
-        INSERT INTO organization_memberships (id, organization_id, user_id, role, permissions, status)
-		VALUES (@id, @organization_id, @user_id, @role, @permissions, @status)
+        INSERT INTO memberships (id, organization_id, user_id, first_name, last_name, role, permissions, status)
+		VALUES (@id, @organization_id, @user_id, @first_name, @last_name, @role, @permissions, @status)
 		RETURNING *
     `
 
@@ -97,6 +98,8 @@ func (r *repository) CreateMembership(
 		"id":              id,
 		"organization_id": organizationID,
 		"user_id":         userID,
+		"first_name":      firstName,
+		"last_name":       lastName,
 		"role":            role,
 		"permissions":     permissions,
 		"status":          status,
@@ -115,7 +118,7 @@ func (r *repository) ListActiveMemberships(
 ) ([]Membership, error) {
 	stmt := `
 		SELECT * 
-		FROM organization_memberships
+		FROM memberships
 		WHERE user_id = @user_id
 		  AND status = @status
     `
@@ -135,7 +138,7 @@ func (r *repository) ListActiveMemberships(
 func (r *repository) ListMemberships(ctx context.Context, orgID uuid.UUID) ([]Membership, error) {
 	stmt := `
 		SELECT * 
-		FROM organization_memberships 
+		FROM memberships 
 		WHERE organization_id = @organization_id
 	`
 
@@ -159,7 +162,7 @@ func (r *repository) GetIdentity(
 	stmt := `
 		SELECT o.id, o.slug, om.role, om.permissions
 		FROM organizations AS o
-		LEFT JOIN organization_memberships AS om ON o.id = om.organization_id
+		LEFT JOIN memberships AS om ON o.id = om.organization_id
 		WHERE o.slug = @slug
 		  AND om.user_id = @user_id
 		  AND om.status = @status
@@ -172,8 +175,40 @@ func (r *repository) GetIdentity(
 		"status":  status,
 	}).Scan(&i.OrganizationID, &i.OrganizationSlug, &i.Role, &i.Permissions)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrMembershipNotFound
+		}
 		return nil, err
 	}
 
 	return i, nil
+}
+
+func (r *repository) CreateInvitation(
+	ctx context.Context,
+	tx pgx.Tx,
+	id uuid.UUID,
+	tokenHash string,
+) (*Invitation, error) {
+	stmt := `
+		INSERT INTO invitations (id, token_hash)
+		VALUES (@id, @token_hash)
+		RETURNING *
+	`
+
+	query := r.pool.Query
+	if tx != nil {
+		query = tx.Query
+	}
+
+	rows, err := query(ctx, stmt, pgx.NamedArgs{
+		"id":         id,
+		"token_hash": tokenHash,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByName[Invitation])
 }

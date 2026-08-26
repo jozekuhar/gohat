@@ -17,6 +17,7 @@ import (
 	"mimokocke/internal/web/handler"
 	"mimokocke/internal/web/view"
 
+	"github.com/go-playground/form"
 	_ "github.com/goforj/godump"
 	"github.com/resend/resend-go/v3"
 
@@ -58,9 +59,10 @@ func main() {
 	authSrv := auth.NewService(cfg, authRepo)
 	channelSrv := channel.NewService(channelRepo)
 
+	formDecoder := form.NewDecoder()
 	staticHdl := handler.NewStatic()
 	fallbackHdl := handler.NewFallback()
-	tenantHdl := handler.NewTenantHandler(logger, tenantSrv)
+	tenantHdl := handler.NewTenantHandler(logger, tenantSrv, formDecoder)
 	authHdl := handler.NewAuthHandler(cfg, logger, authSrv)
 	channelHdl := handler.NewChanneHandler(logger, channelSrv)
 
@@ -92,7 +94,8 @@ func main() {
 		r.Use(tenantMdw.RequireMembership)
 		r.Get(routes.DashboardPath, tenantHdl.GetDashboard)
 		r.Get(routes.MembershipsPath, tenantHdl.GetMemberships)
-		r.Get(routes.MembershipsCreatePath, tenantHdl.PostCreateInvitation)
+		r.Post(routes.InvitationsPath, tenantHdl.PostCreateInvitation)
+		r.Delete(routes.InvitationsPath, tenantHdl.PostCreateInvitation)
 		r.Get(routes.ChannelsPath, channelHdl.GetChannels)
 	})
 

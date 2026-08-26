@@ -27,10 +27,10 @@ const (
 	Dashboard     = "/%s"
 	DashboardPath = "/{" + PathOrganizationSlug + "}"
 
-	Memberships           = "/%s/memberships"
-	MembershipsPath       = "/{" + PathOrganizationSlug + "}/memberships"
-	MembershipsCreate     = "/%s/memberships/create"
-	MembershipsCreatePath = "/{" + PathOrganizationSlug + "}/memberships/create"
+	Memberships     = "/%s/memberships"
+	MembershipsPath = "/{" + PathOrganizationSlug + "}/memberships"
+	Invitations     = "/%s/invitations"
+	InvitationsPath = "/{" + PathOrganizationSlug + "}/invitations"
 
 	Channels     = "/%s/channels"
 	ChannelsPath = "/{" + PathOrganizationSlug + "}/channels"
