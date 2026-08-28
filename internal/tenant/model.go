@@ -3,6 +3,8 @@ package tenant
 import (
 	"time"
 	"uuid"
+
+	"mimokocke/internal/shared/authz"
 )
 
 type Organization struct {
@@ -13,21 +15,11 @@ type Organization struct {
 	UpdatedAt *time.Time
 }
 
-type membershipRole string
-
-const (
-	MembershipRoleOwner  membershipRole = "owner"
-	MembershipRoleAdmin  membershipRole = "admin"
-	MembershipRoleMember membershipRole = "member"
-)
-
 type membershipStatus string
 
 const (
-	MembershipStatusInvited   membershipStatus = "invited"
-	MembershipStatusActive    membershipStatus = "active"
-	MembershipStatusDeclined  membershipStatus = "declined"
-	MembershipStatusSuspended membershipStatus = "suspended"
+	membershipStatusActive   membershipStatus = "active"
+	membershipStatusInactive membershipStatus = "inactive"
 )
 
 type Membership struct {
@@ -36,8 +28,8 @@ type Membership struct {
 	UserID         uuid.UUID
 	FirstName      string
 	LastName       string
-	Role           membershipRole
-	Permissions    []string
+	Role           authz.Role
+	Permissions    []authz.Permission
 	Status         membershipStatus
 	CreatedAt      time.Time
 	UpdatedAt      *time.Time
@@ -46,12 +38,12 @@ type Membership struct {
 type Invitation struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID
-	UserID         uuid.UUID
 	Email          string
 	FirstName      string
 	LastName       string
-	Role           membershipRole
-	Permissions    []string
+	Role           authz.Role
+	Permissions    []authz.Permission
+	TokenHash      string
 	ExpiresAt      time.Time
 	CreatedAt      time.Time
 }

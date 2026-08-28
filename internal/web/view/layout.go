@@ -10,16 +10,16 @@ import (
 )
 
 type layout struct {
-	toast     *Toast
-	modal     *modal
-	component *component
+	// toast *Toast
+	// modal     *modal
+	// component *component
 }
 
 func newLayout() *layout {
 	return &layout{
-		toast:     NewToast(),
-		modal:     newModal(),
-		component: newComponent(),
+		// toast: NewToast(),
+		// modal:     newModal(),
+		// component: newComponent(),
 	}
 }
 
@@ -31,8 +31,8 @@ func (v *layout) Auth(children ...g.Node) g.Node {
 	return v.base(
 		v.navbar(),
 		g.Map(children, func(node g.Node) g.Node { return node }),
-		v.toast.container(),
-		v.modal.container(),
+		// v.toast.container(),
+		// v.modal.container(),
 	)
 }
 
@@ -67,10 +67,10 @@ func (v *layout) navbar() g.Node {
 			h.Class("flex items-center justify-end px-4 py-2"),
 			h.Ul(
 				h.Li(
-					v.component.primaryButton(
-						"Logout",
-						hx.Post(routes.ILogout),
+					h.Button(
+						hx.Post(routes.HXLogout),
 						hx.Swap("none"),
+						g.Text("Logout"),
 					),
 				),
 			),

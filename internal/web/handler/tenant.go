@@ -2,10 +2,13 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"mimokocke/internal/auth"
+	"mimokocke/internal/shared/authz"
+	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
 	"mimokocke/internal/web/view"
 
@@ -19,7 +22,7 @@ type tenantHandler struct {
 	formDecoder     *form.Decoder
 	dashboardView   *view.Dashboard
 	membershipsView *view.Memberships
-	toastView       *view.Toast
+	// toastView       *view.Toast
 }
 
 func NewTenantHandler(
@@ -33,20 +36,21 @@ func NewTenantHandler(
 		formDecoder:     formDecoder,
 		dashboardView:   view.NewDashboard(),
 		membershipsView: view.NewMemberships(),
-		toastView:       view.NewToast(),
+		// toastView:       view.NewToast(),
 	}
 }
 
 func (h *tenantHandler) GetOrganizations(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserIDFomContext(r.Context())
+	_ = userID
 
-	organizations, err := h.tenantSrv.ListOrganizations(r.Context(), userID)
-	if err != nil {
-		h.logger.Error("list organizations", "err", err)
-		return
-	}
+	// organizations, err := h.tenantSrv.ListOrganizations(r.Context(), userID)
+	// if err != nil {
+	// 	h.logger.Error("list organizations", "err", err)
+	// 	return
+	// }
 
-	render(w, h.dashboardView.OrganizationsPage(organizations))
+	render(w, h.dashboardView.OrganizationsPage(nil))
 }
 
 type createOrganizationForm struct {
@@ -82,13 +86,13 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 	)
 	if errors.Is(err, tenant.ErrOrganizationLimitReached) {
 		h.logger.Warn("user tries to create new organization when limit reached", "err", err)
-		render(
-			w,
-			h.toastView.FragmentText(
-				"Maximum limit reached",
-				"You have reached maximum organization limit",
-			),
-		)
+		// render(
+		// 	w,
+		// 	h.toastView.FragmentText(
+		// 		"Maximum limit reached",
+		// 		"You have reached maximum organization limit",
+		// 	),
+		// )
 		return
 	}
 	if err != nil {
@@ -100,33 +104,29 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 }
 
 func (h *tenantHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserIDFomContext(r.Context())
-	membership := tenant.MustIdentityFromContext(r.Context())
+	identity := tenant.MustIdentityFromContext(r.Context())
 
-	render(w, h.dashboardView.DashboardPage(userID, membership))
+	render(w, h.dashboardView.DashboardPage(identity))
 }
 
 func (h *tenantHandler) GetMemberships(w http.ResponseWriter, r *http.Request) {
-	userID := auth.MustUserIDFomContext(r.Context())
-	_ = userID
-	// still need to log it?
-
 	identity := tenant.MustIdentityFromContext(r.Context())
 
-	memberships, err := h.tenantSrv.GetMemberships(r.Context(), identity)
+	data, err := h.tenantSrv.GetMembershipsData(r.Context(), identity)
 	if err != nil {
+		h.logger.Error("getting memberships data", "err", err)
 		return
 	}
 
-	render(w, h.membershipsView.MembershipsPage(identity, memberships))
+	render(w, h.membershipsView.MembershipsPage(identity, data))
 }
 
 type createInvitationForm struct {
 	Email       string
 	FirstName   string
 	LastName    string
-	Role        string
-	Permissions []string
+	Role        authz.Role
+	Permissions []authz.Permission
 }
 
 func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
@@ -145,22 +145,58 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	godump.Dump(identity)
-	godump.Dump(form)
+	invitation, err := h.tenantSrv.InviteUser(
+		r.Context(),
+		identity,
+		tenant.InviteUserParams{
+			Email:       form.Email,
+			FirstName:   form.FirstName,
+			LastName:    form.LastName,
+			Role:        form.Role,
+			Permissions: form.Permissions,
+		},
+	)
+	if err != nil {
+		h.logger.Error("invite user to organization", "err", err)
+		return
+	}
 
-	// invitation, err := h.tenantSrv.InviteUser(r.Context(), identity, email)
-	// if err != nil {
-	// 	h.logger.Error("invite user to organization", "err", err)
-	// 	return
-	// }
-	//
-	// godump.Dump(invitation)
-	//
-	// _, _ = w.Write([]byte("Hello world"))
+	godump.Dump(invitation)
+}
+
+func (h *tenantHandler) DeleteRemoveInvitation(w http.ResponseWriter, r *http.Request) {
+	identity := tenant.MustIdentityFromContext(r.Context())
+
+	invitationID, err := pathValueUUID(r, routes.PathInvitationID)
+	if err != nil {
+		h.logger.Error("", "err", err)
+		return
+	}
+
+	fmt.Println(invitationID)
+
+	err = h.tenantSrv.CancelInvite(r.Context(), identity, invitationID)
+	if err != nil {
+		h.logger.Error("canceling invitation", "err", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *tenantHandler) GetShowInvitation(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	userID, err := auth.UserIDFomContext(r.Context())
+	if err != nil {
+		// Redirect user to register page if not auth
+		// user id not in context
+		slog.Error("user id from context", "err", err)
+		http.Redirect(w, r, routes.Register, http.StatusSeeOther)
+		return
+	}
+
+	// Check if this is same user to accept invitation
+
+	godump.Dump(userID)
 }
 
 func (h *tenantHandler) PostAcceptInvitation(w http.ResponseWriter, r *http.Request) {

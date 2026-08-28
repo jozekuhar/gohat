@@ -23,8 +23,8 @@ func NewMemberships() *Memberships {
 }
 
 func (v *Memberships) MembershipsPage(
-	identity *authz.Identity,
-	memberships []tenant.Membership,
+	identity authz.Identity,
+	data tenant.MembershipsData,
 ) g.Node {
 	return v.layout.Auth(
 		h.Main(
@@ -33,14 +33,40 @@ func (v *Memberships) MembershipsPage(
 			h.Div(
 				g.Text("Members list"),
 			),
+			h.H2(g.Text("Memberhips")),
 			h.Ul(
-				g.Map(memberships, func(m tenant.Membership) g.Node {
+				g.Map(data.Memberhips, func(membership tenant.Membership) g.Node {
 					return h.Li(
 						h.Span(
-							g.Text(m.ID.String()),
+							g.Text(membership.ID.String()),
 						),
 						h.Span(
-							g.Text(string(m.Role)),
+							g.Text(string(membership.Role)),
+						),
+					)
+				}),
+			),
+			h.H2(g.Text("Invitations")),
+			h.Ul(
+				g.Map(data.Invitations, func(invitation tenant.Invitation) g.Node {
+					return h.Li(
+						h.Class("flex gap-4"),
+						h.Span(
+							g.Text(invitation.ID.String()),
+						),
+						h.Span(
+							g.Text(string(invitation.Role)),
+						),
+						h.Button(
+							hx.Delete(
+								fmt.Sprintf(
+									routes.InvitationsDetail,
+									identity.OrganizationSlug,
+									invitation.ID.String(),
+								),
+							),
+							hx.Swap("none"),
+							g.Text("Delete"),
 						),
 					)
 				}),
@@ -88,7 +114,7 @@ func (v *Memberships) MembershipsPage(
 						h.Input(
 							h.Type("checkbox"),
 							h.Name("Permissions"),
-							h.Value(string(authz.MembershipRead)),
+							h.Value(string(authz.PermMembershipRead)),
 						),
 					),
 					h.Label(
@@ -96,7 +122,7 @@ func (v *Memberships) MembershipsPage(
 						h.Input(
 							h.Type("checkbox"),
 							h.Name("Permissions"),
-							h.Value(string(authz.MembershipCreate)),
+							h.Value(string(authz.PermMembershipCreate)),
 						),
 					),
 					h.Label(
@@ -104,7 +130,7 @@ func (v *Memberships) MembershipsPage(
 						h.Input(
 							h.Type("checkbox"),
 							h.Name("Permissions"),
-							h.Value(string(authz.MembershipUpdate)),
+							h.Value(string(authz.PermMembershipUpdate)),
 						),
 					),
 					h.Label(
@@ -112,7 +138,7 @@ func (v *Memberships) MembershipsPage(
 						h.Input(
 							h.Type("checkbox"),
 							h.Name("Permissions"),
-							h.Value(string(authz.MembershipDelete)),
+							h.Value(string(authz.PermMembershipDelete)),
 						),
 					),
 				),

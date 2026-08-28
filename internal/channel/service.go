@@ -18,7 +18,7 @@ func NewService(channelRepo *repository) *Service {
 	}
 }
 
-func (s *Service) GetChannels(ctx context.Context, identity *authz.Identity) ([]Channel, error) {
+func (s *Service) GetChannels(ctx context.Context, identity authz.Identity) ([]Channel, error) {
 	// Permissions READ
 	godump.Dump(identity)
 

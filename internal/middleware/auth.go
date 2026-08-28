@@ -6,7 +6,7 @@ import (
 
 	"mimokocke/internal/auth"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/shared/session"
+	"mimokocke/internal/web/cookie"
 )
 
 type authMiddleware struct {
@@ -23,7 +23,7 @@ func NewAuthMiddleware(logger *slog.Logger, authSrv *auth.Service) *authMiddlewa
 
 func (m *authMiddleware) RequireGuest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sessionIDStr, err := session.GetCookie(r)
+		sessionIDStr, err := cookie.GetSession(r)
 		if err != nil {
 			handler.ServeHTTP(w, r)
 			return
@@ -32,7 +32,7 @@ func (m *authMiddleware) RequireGuest(handler http.Handler) http.Handler {
 		_, err = m.authSrv.VerifySession(r.Context(), sessionIDStr)
 		if err != nil {
 			m.logger.Warn("verifying session", "err", err)
-			session.ClearCookie(w)
+			cookie.ClearSession(w)
 			handler.ServeHTTP(w, r)
 			return
 		}
@@ -43,7 +43,7 @@ func (m *authMiddleware) RequireGuest(handler http.Handler) http.Handler {
 
 func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sessionIDStr, err := session.GetCookie(r)
+		sessionIDStr, err := cookie.GetSession(r)
 		if err != nil {
 			http.Redirect(w, r, routes.Login, http.StatusSeeOther)
 			return
@@ -52,8 +52,29 @@ func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 		s, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
 		if err != nil {
 			m.logger.Warn("verifying session", "err", err)
-			session.ClearCookie(w)
+			cookie.ClearSession(w)
 			http.Redirect(w, r, routes.Login, http.StatusSeeOther)
+			return
+		}
+
+		ctx := auth.WithUserID(r.Context(), s.UserID)
+		handler.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (m *authMiddleware) OptionalAuth(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sessionIDStr, err := cookie.GetSession(r)
+		if err != nil {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		s, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
+		if err != nil {
+			m.logger.Warn("verifying session", "err", err)
+			cookie.ClearSession(w)
+			handler.ServeHTTP(w, r)
 			return
 		}
 

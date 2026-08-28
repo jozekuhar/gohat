@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"mimokocke/internal/auth"
+	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
 )
@@ -22,24 +23,35 @@ func NewTenantMiddleware(logger *slog.Logger, tenantSrv *tenant.Service) *tenant
 	}
 }
 
-func (m *tenantMiddleware) RequireMembership(handler http.Handler) http.Handler {
+func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.MustUserIDFomContext(r.Context())
 		orgSlug := r.PathValue(routes.PathOrganizationSlug)
 
-		i, err := m.tenantSrv.VerifyMembership(r.Context(), userID, orgSlug)
+		// TODO(jozekuhar): change to identity, so i just go for membership
+		am, err := m.tenantSrv.GetActiveMembership(r.Context(), userID, orgSlug)
 		if err != nil {
 			if errors.Is(err, tenant.ErrMembershipNotFound) {
 				// TODO(jozekuhar): return not found page
 				w.WriteHeader(404)
-				w.Write([]byte("not found"))
+				_, _ = w.Write([]byte("not found"))
 				return
 			}
 			m.logger.Error("verifying membership", "err", err)
 			return
 		}
 
-		ctx := tenant.WithIdentity(r.Context(), i)
+		identity := authz.Identity{
+			UserID:           userID,
+			OrganizationID:   am.OrganizationID,
+			OrganizationSlug: orgSlug,
+			Role:             am.Role,
+			Permissions:      am.Permissions,
+		}
+
+		identity.UserID = userID
+
+		ctx := tenant.WithIdentity(r.Context(), identity)
 		newR := r.WithContext(ctx)
 
 		handler.ServeHTTP(w, newR)

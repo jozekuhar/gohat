@@ -5,55 +5,64 @@ import (
 	"uuid"
 )
 
-type role string
+type Role string
+
+func (r Role) String() string {
+	return string(r)
+}
 
 const (
-	RoleOwner  role = "owner"
-	RoleAdmin  role = "admin"
-	RoleMember role = "member"
+	RoleOwner  Role = "owner"
+	RoleAdmin  Role = "admin"
+	RoleMember Role = "member"
 )
 
-type permission string
+type Permission string
 
 const (
-	MembershipRead   permission = "membership:read"
-	MembershipCreate permission = "membership:create"
-	MembershipUpdate permission = "membership:update"
-	MembershipDelete permission = "membership:delete"
-	ChannelRead      permission = "channel:read"
-	ChannelCreate    permission = "channel:create"
-	ChannelUpdate    permission = "channel:update"
-	ChannelDelete    permission = "channel:delete"
+	PermMembershipRead   Permission = "membership:read"
+	PermMembershipCreate Permission = "membership:create"
+	PermMembershipUpdate Permission = "membership:update"
+	PermMembershipDelete Permission = "membership:delete"
+	PermChannelRead      Permission = "channel:read"
+	PermChannelCreate    Permission = "channel:create"
+	PermChannelUpdate    Permission = "channel:update"
+	PermChannelDelete    Permission = "channel:delete"
 
 	// TODO(jozekuhar): billing is future feature
-	BillingRead   permission = "billing:read"
-	BillingCreate permission = "billing:create"
-	BillingUpdate permission = "billing:update"
-	BillingDelete permission = "billing:write"
+	PermBillingRead   Permission = "billing:read"
+	PermBillingCreate Permission = "billing:create"
+	PermBillingUpdate Permission = "billing:update"
+	PermBillingDelete Permission = "billing:write"
 )
 
-var rolePermissions = map[string][]permission{
-	string(RoleOwner):  {},
-	string(RoleAdmin):  {MembershipRead, MembershipCreate, MembershipUpdate, MembershipDelete},
-	string(RoleMember): {},
+var rolePermissions = map[Role][]Permission{
+	RoleOwner: {},
+	RoleAdmin: {
+		PermMembershipRead,
+		PermMembershipCreate,
+		PermMembershipUpdate,
+		PermMembershipDelete,
+	},
+	RoleMember: {},
 }
 
 type Identity struct {
+	UserID           uuid.UUID
 	OrganizationID   uuid.UUID
 	OrganizationSlug string
-	Role             string // map?
-	Permissions      []string
+	Role             Role
+	Permissions      []Permission
 }
 
-func (a *Identity) HasPermission(perm permission) bool {
-	// admin check?
-	if a.Role == string(RoleOwner) {
+func (a *Identity) HasPermission(perm Permission) bool {
+	if a.Role == RoleOwner {
 		return true
 	}
 
-	if a.Role == string(RoleAdmin) && slices.Contains(rolePermissions[string(RoleAdmin)], perm) {
+	if a.Role == RoleAdmin && slices.Contains(rolePermissions[RoleAdmin], perm) {
 		return true
 	}
 
-	return slices.Contains(a.Permissions, string(perm))
+	return slices.Contains(a.Permissions, perm)
 }

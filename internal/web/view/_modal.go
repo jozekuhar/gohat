@@ -23,12 +23,15 @@ func newModal() *modal {
 
 func (v *modal) container() g.Node {
 	return h.Div(
-		h.ID("modal-portal"),
+		h.ID(idModalPortal),
 	)
 }
 
 func (v *modal) fragment(title string, content g.Node) g.Node {
 	titleID := "modal-title"
+
+	_ = v.fragment
+	_ = v.onClose
 
 	return g.El(
 		"hx-partial",

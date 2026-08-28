@@ -8,16 +8,30 @@ import (
 type User struct {
 	ID        uuid.UUID
 	Email     string
-	GoogleID  string
 	CreatedAt time.Time
 	UpdatedAt *time.Time
 }
 
+type AuthProvider string
+
+const (
+	AuthProviderPassword = "password"
+	AuthProviderGoogle   = "google"
+)
+
+type Authentication struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Provider     AuthProvider
+	ProviderID   *string
+	PasswordHash *string
+	CreatedAt    time.Time
+	UpdatedAt    *time.Time
+}
+
 type Session struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-	// OrganizationID   uuid.UUID
-	// OrganizationSlug string
+	ID        uuid.UUID
+	UserID    uuid.UUID
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }

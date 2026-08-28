@@ -3,6 +3,7 @@ package tenant
 import (
 	"context"
 	"errors"
+	"fmt"
 	"uuid"
 
 	"mimokocke/internal/shared/authz"
@@ -29,7 +30,7 @@ func (r *repository) CreateOrganization(
 	id uuid.UUID,
 	name string,
 	slug string,
-) (*Organization, error) {
+) (Organization, error) {
 	stmt := `
         INSERT INTO organizations (id, name, slug)
 		VALUES (@id, @name, @slug)
@@ -47,11 +48,11 @@ func (r *repository) CreateOrganization(
 		"slug": slug,
 	})
 	if err != nil {
-		return nil, err
+		return Organization{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByName[Organization])
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Organization])
 }
 
 func (r *repository) ListOrganizationsForUser(
@@ -79,10 +80,10 @@ func (r *repository) CreateMembership(
 	tx pgx.Tx,
 	id, organizationID, userID uuid.UUID,
 	firstName, lastName string,
-	role membershipRole,
+	role string,
 	permissions []string,
 	status membershipStatus,
-) (*Membership, error) {
+) (Membership, error) {
 	stmt := `
         INSERT INTO memberships (id, organization_id, user_id, first_name, last_name, role, permissions, status)
 		VALUES (@id, @organization_id, @user_id, @first_name, @last_name, @role, @permissions, @status)
@@ -105,11 +106,11 @@ func (r *repository) CreateMembership(
 		"status":          status,
 	})
 	if err != nil {
-		return nil, err
+		return Membership{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByName[Membership])
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Membership])
 }
 
 func (r *repository) ListActiveMemberships(
@@ -125,7 +126,7 @@ func (r *repository) ListActiveMemberships(
 
 	rows, err := r.pool.Query(ctx, stmt, pgx.NamedArgs{
 		"user_id": userID,
-		"status":  MembershipStatusActive,
+		"status":  membershipStatusActive,
 	})
 	if err != nil {
 		return nil, err
@@ -153,14 +154,20 @@ func (r *repository) ListMemberships(ctx context.Context, orgID uuid.UUID) ([]Me
 	return pgx.CollectRows(rows, pgx.RowToStructByName[Membership])
 }
 
-func (r *repository) GetIdentity(
+type activeMembership struct {
+	OrganizationID uuid.UUID
+	Role           authz.Role
+	Permissions    []authz.Permission
+}
+
+func (r *repository) GetActiveMemberhip(
 	ctx context.Context,
 	userID uuid.UUID,
 	orgSlug string,
 	status membershipStatus,
-) (*authz.Identity, error) {
+) (activeMembership, error) {
 	stmt := `
-		SELECT o.id, o.slug, om.role, om.permissions
+		SELECT o.id, om.role, om.permissions
 		FROM organizations AS o
 		LEFT JOIN memberships AS om ON o.id = om.organization_id
 		WHERE o.slug = @slug
@@ -168,31 +175,30 @@ func (r *repository) GetIdentity(
 		  AND om.status = @status
     `
 
-	i := &authz.Identity{}
+	var am activeMembership
 	err := r.pool.QueryRow(ctx, stmt, pgx.NamedArgs{
 		"slug":    orgSlug,
 		"user_id": userID,
 		"status":  status,
-	}).Scan(&i.OrganizationID, &i.OrganizationSlug, &i.Role, &i.Permissions)
+	}).Scan(&am.OrganizationID, &am.Role, &am.Permissions)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrMembershipNotFound
+			return activeMembership{}, ErrMembershipNotFound
 		}
-		return nil, err
+		return activeMembership{}, err
 	}
 
-	return i, nil
+	return am, nil
 }
 
 func (r *repository) CreateInvitation(
 	ctx context.Context,
 	tx pgx.Tx,
-	id uuid.UUID,
-	tokenHash string,
-) (*Invitation, error) {
+	i Invitation,
+) (Invitation, error) {
 	stmt := `
-		INSERT INTO invitations (id, token_hash)
-		VALUES (@id, @token_hash)
+		INSERT INTO invitations (id, organization_id, email, first_name, last_name, role, permissions, token_hash, expires_at)
+		VALUES (@id, @organization_id, @email, @first_name, @last_name, @role, @permissions, @token_hash, @expires_at)
 		RETURNING *
 	`
 
@@ -202,13 +208,52 @@ func (r *repository) CreateInvitation(
 	}
 
 	rows, err := query(ctx, stmt, pgx.NamedArgs{
-		"id":         id,
-		"token_hash": tokenHash,
+		"id":              i.ID,
+		"organization_id": i.OrganizationID,
+		"email":           i.Email,
+		"first_name":      i.FirstName,
+		"last_name":       i.LastName,
+		"role":            i.Role,
+		"permissions":     i.Permissions,
+		"token_hash":      i.TokenHash,
+		"expires_at":      i.ExpiresAt,
+	})
+	if err != nil {
+		fmt.Println("error is here")
+		return Invitation{}, err
+	}
+	defer rows.Close()
+
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Invitation])
+}
+
+func (r *repository) ListInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error) {
+	stmt := `
+		SELECT * FROM invitations
+		WHERE organization_id = @organization_id
+    `
+
+	rows, err := r.pool.Query(ctx, stmt, pgx.NamedArgs{
+		"organization_id": orgID,
 	})
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToAddrOfStructByName[Invitation])
+	return pgx.CollectRows(rows, pgx.RowToStructByName[Invitation])
+}
+
+func (r *repository) DeleteInvitation(ctx context.Context, id, orgID uuid.UUID) error {
+	stmt := `
+		DELETE FROM invitations
+		WHERE id = @id 
+		  AND organization_id = @organization_id
+    `
+
+	_, err := r.pool.Exec(ctx, stmt, pgx.NamedArgs{
+		"id":              id,
+		"organization_id": orgID,
+	})
+	return err
 }

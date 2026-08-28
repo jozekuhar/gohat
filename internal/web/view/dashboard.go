@@ -2,7 +2,6 @@ package view
 
 import (
 	"fmt"
-	"uuid"
 
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
@@ -77,16 +76,13 @@ func (v *Dashboard) OrganizationsPage(orgs []tenant.Organization) g.Node {
 	)
 }
 
-func (v *Dashboard) DashboardPage(
-	userID uuid.UUID,
-	identity *authz.Identity,
-) g.Node {
+func (v *Dashboard) DashboardPage(identity authz.Identity) g.Node {
 	return v.layout.Auth(
 		h.Main(
 			h.Class("mx-auto max-w-7xl"),
 			h.Div(
 				g.Text("USER_ID"),
-				g.Text(userID.String()),
+				g.Text(identity.UserID.String()),
 			),
 			h.Div(
 				g.Text("ORG_ID"),
@@ -94,7 +90,7 @@ func (v *Dashboard) DashboardPage(
 			),
 			h.Div(
 				g.Text("ORG_ROLE"),
-				g.Text(identity.Role),
+				g.Text(identity.Role.String()),
 			),
 			h.Div(
 				h.Class("flex flex-col"),
