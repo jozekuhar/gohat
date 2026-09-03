@@ -19,6 +19,8 @@ const (
 	HXSignInGoogle       = "/hx/signin/google"
 	CallbackSignInGoogle = "/callback/signin/google"
 	HXLogout             = "/hx/logout"
+	PrivacyPolicy        = "/privacy"
+	TermsOfService       = "/terms"
 
 	// TO DO BELLOW
 	HXOrganizationCreate = "/hx/organization/create"

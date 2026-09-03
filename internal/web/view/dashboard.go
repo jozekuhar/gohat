@@ -28,7 +28,7 @@ func NewDashboard() *Dashboard {
 }
 
 func (v *Dashboard) OrganizationsPage(orgs []tenant.Organization) g.Node {
-	return v.layout.Auth(
+	return v.layout.App(
 		h.Main(
 			h.Class("mx-auto max-w-7xl"),
 			h.Div(
@@ -77,7 +77,7 @@ func (v *Dashboard) OrganizationsPage(orgs []tenant.Organization) g.Node {
 }
 
 func (v *Dashboard) DashboardPage(identity authz.Identity) g.Node {
-	return v.layout.Auth(
+	return v.layout.App(
 		h.Main(
 			h.Class("mx-auto max-w-7xl"),
 			h.Div(

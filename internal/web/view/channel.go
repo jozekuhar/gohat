@@ -18,7 +18,7 @@ func NewChannel() *Channel {
 }
 
 func (v *Channel) ChannelsPage(channels []channel.Channel) g.Node {
-	return v.layout.Auth(
+	return v.layout.App(
 		h.Main(
 			h.Class("max-w-7xl mx-auto"),
 			h.H1(g.Text("Channels")),

@@ -63,7 +63,7 @@ func main() {
 	validator := validator.New(validator.WithRequiredStructEnabled())
 
 	staticHdl := handler.NewStatic()
-	fallbackHdl := handler.NewFallback()
+	coreHdl := handler.NewCore()
 	tenantHdl := handler.NewTenantHandler(logger, tenantSrv, formDecoder)
 	authHdl := handler.NewAuthHandler(cfg, logger, authSrv, formDecoder, validator)
 	channelHdl := handler.NewChanneHandler(logger, channelSrv)
@@ -75,8 +75,8 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Get(routes.Static, staticHdl.GetStatic)
-		r.NotFound(fallbackHdl.GetNotFound)
-		r.MethodNotAllowed(fallbackHdl.GetMethodNotAllowed)
+		r.NotFound(coreHdl.GetNotFound)
+		r.MethodNotAllowed(coreHdl.GetNotFound)
 	})
 
 	r.Group(func(r chi.Router) {
@@ -97,6 +97,8 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			r.Get(routes.CallbackSignInGoogle, authHdl.GetSignInGoogleCallback)
+			r.Get(routes.TermsOfService, coreHdl.GetTermsOfService)
+			r.Get(routes.PrivacyPolicy, coreHdl.GetPrivacyPolicy)
 		})
 	})
 

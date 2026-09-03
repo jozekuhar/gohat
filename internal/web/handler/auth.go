@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -21,8 +20,9 @@ type authHandler struct {
 	logger      *slog.Logger
 	authSrv     *auth.Service
 	formDecoder *form.Decoder
-	validator   *validator.Validate
+	validate    *validator.Validate
 	authView    *view.Auth
+	toastView   *view.Toast
 }
 
 func NewAuthHandler(
@@ -37,8 +37,9 @@ func NewAuthHandler(
 		logger:      logger,
 		authSrv:     authSrv,
 		formDecoder: formDecoder,
-		validator:   validator,
+		validate:    validator,
 		authView:    view.NewAuth(),
+		toastView:   view.NewToast(),
 	}
 }
 
@@ -54,26 +55,34 @@ type loginForm struct {
 func (h *authHandler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		h.logger.Error("parsing form", "err", err)
+		h.logger.Error("parsing login form", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
 	var form loginForm
 	err = h.formDecoder.Decode(&form, r.Form)
 	if err != nil {
-		h.logger.Error("decoding form", "err", err)
+		h.logger.Error("decoding login form", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
-	err = h.validator.Struct(form)
+	err = h.validate.Struct(form)
 	if err != nil {
-		h.logger.Error("validating form", "err", err)
+		h.logger.Error("validating login form", "err", err)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
 	s, err := h.authSrv.LoginUserWithPassword(r.Context(), form.Email, form.Password)
 	if err != nil {
 		h.logger.Error("logging in user with password", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
@@ -96,6 +105,8 @@ func (h *authHandler) PostRegister(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		h.logger.Error("parsing form", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
@@ -103,11 +114,14 @@ func (h *authHandler) PostRegister(w http.ResponseWriter, r *http.Request) {
 	err = h.formDecoder.Decode(&form, r.Form)
 	if err != nil {
 		h.logger.Error("decoding form", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
 	if form.Password != form.ConfirmPassword {
-		// TODO(jozekuhar): error happened
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		render(w, h.toastView.Fragment("Password missmatch"))
 		return
 	}
 
@@ -119,15 +133,15 @@ func (h *authHandler) PostRegister(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 	if err != nil {
-		// TODO(jozekuhar): error happened
 		h.logger.Error("registering user", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
-	fmt.Println("redirect?")
-
 	cookie.SetSession(w, s.ID.String(), s.ExpiresAt)
 	hx.SetRedirect(w.Header(), routes.Index)
+	w.WriteHeader(http.StatusSeeOther)
 }
 
 func (h *authHandler) GetSignInWithGoogle(w http.ResponseWriter, r *http.Request) {
@@ -144,18 +158,24 @@ func (h *authHandler) GetSignInGoogleCallback(w http.ResponseWriter, r *http.Req
 
 	cookieState, err := cookie.GetOAuthState(r)
 	if err != nil {
+		h.logger.Error("getting oauth state cookie", "err", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
 	if state != cookieState {
 		h.logger.Error("url and cookie state missmatch")
+		w.WriteHeader(http.StatusUnauthorized)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
 	s, err := h.authSrv.ProcessGoogleSignIn(r.Context(), code)
 	if err != nil {
 		h.logger.Error("processing google login", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
@@ -167,7 +187,8 @@ func (h *authHandler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	sessionIDStr, err := cookie.GetSession(r)
 	if err != nil {
 		h.logger.Error("retrieving session cookie", "err", err)
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 
@@ -175,6 +196,7 @@ func (h *authHandler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("logging out user", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		render(w, h.toastView.Fragment("Something went wrong"))
 		return
 	}
 

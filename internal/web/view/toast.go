@@ -11,14 +11,10 @@ import (
 
 const idToastPortal = "toast-portal"
 
-type Toast struct {
-	icon *icon
-}
+type Toast struct{}
 
 func NewToast() *Toast {
-	return &Toast{
-		icon: newIcon(),
-	}
+	return &Toast{}
 }
 
 func (v *Toast) container() g.Node {
@@ -32,11 +28,7 @@ func (v *Toast) container() g.Node {
 	)
 }
 
-func (v *Toast) FragmentText(title string, text string) g.Node {
-	return v.Fragment(title, g.Text(text))
-}
-
-func (v *Toast) Fragment(title string, content g.Node) g.Node {
+func (v *Toast) Fragment(text string) g.Node {
 	return g.El(
 		"hx-partial",
 		hx.Target(fmt.Sprintf("#%s", idToastPortal)),
@@ -49,22 +41,36 @@ func (v *Toast) Fragment(title string, content g.Node) g.Node {
 			h.Class("w-fit space-y-2 rounded-lg border border-gray-100 bg-white p-6 shadow-sm"),
 			h.Div(
 				h.Class("flex items-center justify-between gap-8"),
-				h.H1(
-					h.Class("text-sm font-medium"),
-					g.Text(title),
-				),
+				h.Span(g.Text(text)),
 				h.Button(
 					x.On("click", "destroy()"),
 					h.Class(
 						"relative rounded-full before:absolute before:-inset-4.5 before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
 					),
 					h.Div(
-						h.Class("flex size-4 items-center justify-center"),
-						v.icon.xMark("size-3 fill-gray-400"),
+						h.Class("flex size-3 items-center justify-center"),
+						h.SVG(
+							g.Attr("viewBox", "0 0 512 512"),
+							g.El("g",
+								g.El(
+									"path",
+									g.Attr(
+										"d",
+										"m25 512a25 25 0 0 1 -17.68-42.68l462-462a25 25 0 0 1 35.36 35.36l-462 462a24.93 24.93 0 0 1 -17.68 7.32z",
+									),
+								),
+								g.El(
+									"path",
+									g.Attr(
+										"d",
+										"m487 512a24.93 24.93 0 0 1 -17.68-7.32l-462-462a25 25 0 0 1 35.36-35.36l462 462a25 25 0 0 1 -17.68 42.68z",
+									),
+								),
+							),
+						),
 					),
 				),
 			),
-			content,
 		),
 	)
 }
