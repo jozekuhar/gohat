@@ -33,7 +33,7 @@ func (h *channelHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render(w, h.channelView.ChannelsPage(channels))
+	render(w, h.channelView.ChannelsPage(identity, channels))
 }
 
 func (h *channelHandler) PostCreateChannel(w http.ResponseWriter, r *http.Request) {

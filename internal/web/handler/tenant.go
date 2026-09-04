@@ -20,9 +20,10 @@ type tenantHandler struct {
 	logger          *slog.Logger
 	tenantSrv       *tenant.Service
 	formDecoder     *form.Decoder
+	layoutView      *view.Layout
 	dashboardView   *view.Dashboard
 	membershipsView *view.Memberships
-	// toastView       *view.Toast
+	toastView       *view.Toast
 }
 
 func NewTenantHandler(
@@ -34,23 +35,42 @@ func NewTenantHandler(
 		logger:          logger,
 		tenantSrv:       tenantSrv,
 		formDecoder:     formDecoder,
+		layoutView:      view.NewLayout(),
 		dashboardView:   view.NewDashboard(),
 		membershipsView: view.NewMemberships(),
-		// toastView:       view.NewToast(),
+		toastView:       view.NewToast(),
 	}
 }
 
 func (h *tenantHandler) GetOrganizations(w http.ResponseWriter, r *http.Request) {
 	userID := auth.MustUserIDFomContext(r.Context())
-	_ = userID
 
-	// organizations, err := h.tenantSrv.ListOrganizations(r.Context(), userID)
-	// if err != nil {
-	// 	h.logger.Error("list organizations", "err", err)
-	// 	return
-	// }
+	organizations, err := h.tenantSrv.ListOrganizations(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("list organizations", "err", err)
+		return
+	}
 
-	render(w, h.dashboardView.OrganizationsPage(nil))
+	godump.Dump(organizations)
+	fmt.Println("hello world")
+
+	render(w, h.dashboardView.OrganizationsPage(authz.Identity{}, nil))
+}
+
+func (h *tenantHandler) GetSidebarOrganizationsPartial(w http.ResponseWriter, r *http.Request) {
+	userID := auth.MustUserIDFomContext(r.Context())
+
+	organizations, err := h.tenantSrv.ListOrganizations(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("list organizations", "err", err)
+		return
+	}
+
+	render(w, h.layoutView.SidebarHeaderPopoverOrganizationsPartial(organizations))
+}
+
+func (h *tenantHandler) GetOrganizationsCreateForm(w http.ResponseWriter, r *http.Request) {
+	render(w, h.layoutView.OrganizationCreateFormModal())
 }
 
 type createOrganizationForm struct {
@@ -72,7 +92,7 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 	var form createOrganizationForm
 	err = h.formDecoder.Decode(&form, r.Form)
 	if err != nil {
-		h.logger.Error("decodeing create organization form", "err", err)
+		h.logger.Error("decoding create organization form", "err", err)
 		return
 	}
 
@@ -86,13 +106,7 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 	)
 	if errors.Is(err, tenant.ErrOrganizationLimitReached) {
 		h.logger.Warn("user tries to create new organization when limit reached", "err", err)
-		// render(
-		// 	w,
-		// 	h.toastView.FragmentText(
-		// 		"Maximum limit reached",
-		// 		"You have reached maximum organization limit",
-		// 	),
-		// )
+		render(w, h.toastView.Fragment("You have reached maximum organization limit"))
 		return
 	}
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/routes"
 
+	"github.com/goforj/godump"
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/resend/resend-go/v3"
@@ -69,6 +70,9 @@ func (s *Service) RegisterOrganization(
 		return Organization{}, fmt.Errorf("listing organization memberships for user: %w", err)
 	}
 	if len(memberships) > 0 {
+		fmt.Println("here i am?")
+		fmt.Println(len(memberships))
+		godump.Dump(memberships)
 		return Organization{}, ErrOrganizationLimitReached
 	}
 

@@ -87,7 +87,7 @@ func (h *authHandler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie.SetSession(w, s.ID.String(), s.ExpiresAt)
-	hx.SetRedirect(w.Header(), routes.Index)
+	hx.SetRedirect(w.Header(), routes.Root)
 	w.WriteHeader(http.StatusSeeOther)
 }
 
@@ -140,7 +140,7 @@ func (h *authHandler) PostRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie.SetSession(w, s.ID.String(), s.ExpiresAt)
-	hx.SetRedirect(w.Header(), routes.Index)
+	hx.SetRedirect(w.Header(), routes.Root)
 	w.WriteHeader(http.StatusSeeOther)
 }
 
@@ -180,7 +180,7 @@ func (h *authHandler) GetSignInGoogleCallback(w http.ResponseWriter, r *http.Req
 	}
 
 	cookie.SetSession(w, s.ID.String(), s.ExpiresAt)
-	http.Redirect(w, r, routes.Index, http.StatusSeeOther)
+	http.Redirect(w, r, routes.Root, http.StatusSeeOther)
 }
 
 func (h *authHandler) PostLogout(w http.ResponseWriter, r *http.Request) {

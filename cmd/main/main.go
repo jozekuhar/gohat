@@ -68,7 +68,7 @@ func main() {
 	authHdl := handler.NewAuthHandler(cfg, logger, authSrv, formDecoder, validator)
 	channelHdl := handler.NewChanneHandler(logger, channelSrv)
 
-	tenantMdw := middleware.NewTenantMiddleware(logger, tenantSrv)
+	tenantMdw := middleware.NewTenantMiddleware(logger, tenantSrv, coreHdl)
 	authMdw := middleware.NewAuthMiddleware(logger, authSrv)
 
 	r := chi.NewRouter()
@@ -92,7 +92,20 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(authMdw.RequireAuth)
 			r.Post(routes.HXLogout, authHdl.PostLogout)
-			r.Get(routes.Index, tenantHdl.GetOrganizations)
+
+			r.Get(routes.Root, tenantHdl.GetOrganizations)
+
+			// Sidebar
+			r.Get(routes.HXSidebarOrganizations, tenantHdl.GetSidebarOrganizationsPartial)
+			r.Get(routes.HXSidebarOrganizationsCreate, tenantHdl.GetOrganizationsCreateForm)
+			r.Post(routes.HXSidebarOrganizationsCreate, tenantHdl.PostCreateOrganization)
+
+			// Organization
+			r.Group(func(r chi.Router) {
+				r.Use(tenantMdw.RequireIdentity)
+				r.Get(routes.OrgDashboardPath, tenantHdl.GetDashboard)
+				r.Get(routes.OrgMembershipsPath, tenantHdl.GetMemberships)
+			})
 		})
 
 		r.Group(func(r chi.Router) {
@@ -102,36 +115,7 @@ func main() {
 		})
 	})
 
-	_ = tenantHdl
 	_ = channelHdl
-	_ = tenantMdw
-
-	// r.Group(func(r chi.Router) {
-	// })
-	//
-	// r.Group(func(r chi.Router) {
-	// 	r.Use(authMdw.RequireAuth)
-	// 	r.Get(routes.Index, tenantHdl.GetOrganizations)
-	// 	r.Post(routes.HXOrganizationCreate, tenantHdl.PostCreateOrganization)
-	// })
-	//
-	// r.Group(func(r chi.Router) {
-	// 	r.Use(authMdw.RequireAuth)
-	// 	r.Use(tenantMdw.RequireIdentity)
-	// 	r.Get(routes.DashboardPath, tenantHdl.GetDashboard)
-	// 	r.Get(routes.MembershipsPath, tenantHdl.GetMemberships)
-	// 	r.Post(routes.InvitationsPath, tenantHdl.PostCreateInvitation)
-	// 	r.Delete(routes.InvitationsDetailPath, tenantHdl.DeleteRemoveInvitation)
-	//
-	// 	// Channels
-	// 	r.Get(routes.ChannelsPath, channelHdl.GetChannels)
-	// })
-	//
-	// // Public
-	// r.Group(func(r chi.Router) {
-	// 	r.Use(authMdw.OptionalAuth)
-	// 	r.Get(routes.InvitationsJoinPath, tenantHdl.GetShowInvitation)
-	// })
 
 	if err := http.ListenAndServe(cfg.Port, r); err != nil {
 		log.Panicf("running server on port: %s", cfg.Port)

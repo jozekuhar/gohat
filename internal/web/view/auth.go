@@ -10,17 +10,17 @@ import (
 )
 
 type Auth struct {
-	layout *layout
+	layout *Layout
 }
 
 func NewAuth() *Auth {
 	return &Auth{
-		layout: newLayout(),
+		layout: NewLayout(),
 	}
 }
 
 func (v *Auth) LoginPage() g.Node {
-	return v.layout.Blank(
+	return v.layout.blank(
 		h.Div(
 			h.Class(
 				"bg-muted container grid h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",
@@ -354,7 +354,7 @@ func (v *Auth) LoginPage() g.Node {
 }
 
 func (v *Auth) RegisterPage() g.Node {
-	return v.layout.Blank(
+	return v.layout.blank(
 		h.Div(
 			h.Class(
 				"bg-muted container grid h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",

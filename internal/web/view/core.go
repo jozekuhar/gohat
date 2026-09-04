@@ -10,17 +10,17 @@ import (
 )
 
 type Core struct {
-	layout *layout
+	layout *Layout
 }
 
 func NewCore() *Core {
 	return &Core{
-		layout: newLayout(),
+		layout: NewLayout(),
 	}
 }
 
 func (v *Core) NotFoundPage() g.Node {
-	return v.layout.Blank(
+	return v.layout.blank(
 		h.Div(
 			h.Class("h-svh"),
 			h.Div(
@@ -42,6 +42,7 @@ func (v *Core) NotFoundPage() g.Node {
 				h.Div(
 					h.Class("mt-6 flex gap-4"),
 					h.Button(
+						// TODO(jozekuhar): back as anchor (htmx?) boost must work
 						x.Data(""),
 						x.On("click", "history.back()"),
 						h.Class(
@@ -50,10 +51,11 @@ func (v *Core) NotFoundPage() g.Node {
 						g.Text("Go Back"),
 					),
 					h.A(
+						hx.Boost("true"),
 						h.Class(
 							"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
 						),
-						h.Href(routes.Index),
+						h.Href(routes.Root),
 						g.Text("Back to Home"),
 					),
 				),
@@ -63,7 +65,7 @@ func (v *Core) NotFoundPage() g.Node {
 }
 
 func (v *Core) PrivacyPolicyPage() g.Node {
-	return v.layout.Blank(
+	return v.layout.blank(
 		h.Div(
 			h.Class("mx-auto max-w-prose space-y-4 p-8"),
 			h.H1(
@@ -89,7 +91,7 @@ func (v *Core) PrivacyPolicyPage() g.Node {
 }
 
 func (v *Core) TermsOfServicePage() g.Node {
-	return v.layout.Blank(
+	return v.layout.blank(
 		h.Div(
 			h.Class("mx-auto max-w-prose space-y-4 p-8"),
 			h.H1(

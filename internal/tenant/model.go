@@ -17,6 +17,10 @@ type Organization struct {
 
 type membershipStatus string
 
+func (s membershipStatus) String() string {
+	return string(s)
+}
+
 const (
 	membershipStatusActive   membershipStatus = "active"
 	membershipStatusInactive membershipStatus = "inactive"

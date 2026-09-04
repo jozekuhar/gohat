@@ -9,17 +9,24 @@ import (
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
+	"mimokocke/internal/web/handler"
 )
 
 type tenantMiddleware struct {
 	logger    *slog.Logger
 	tenantSrv *tenant.Service
+	coreHdl   *handler.Core
 }
 
-func NewTenantMiddleware(logger *slog.Logger, tenantSrv *tenant.Service) *tenantMiddleware {
+func NewTenantMiddleware(
+	logger *slog.Logger,
+	tenantSrv *tenant.Service,
+	coreHdl *handler.Core,
+) *tenantMiddleware {
 	return &tenantMiddleware{
 		logger:    logger,
 		tenantSrv: tenantSrv,
+		coreHdl:   coreHdl,
 	}
 }
 
@@ -32,9 +39,8 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 		am, err := m.tenantSrv.GetActiveMembership(r.Context(), userID, orgSlug)
 		if err != nil {
 			if errors.Is(err, tenant.ErrMembershipNotFound) {
-				// TODO(jozekuhar): return not found page
-				w.WriteHeader(404)
-				_, _ = w.Write([]byte("not found"))
+				w.WriteHeader(http.StatusNotFound)
+				m.coreHdl.GetNotFound(w, r)
 				return
 			}
 			m.logger.Error("verifying membership", "err", err)
