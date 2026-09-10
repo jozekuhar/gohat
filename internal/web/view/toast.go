@@ -21,7 +21,7 @@ func (v *Toast) container() g.Node {
 	return h.Div(
 		h.ID(idToastPortal),
 		h.Class(
-			"fixed right-0 bottom-0 flex max-w-sm flex-col items-end gap-4 pr-4 pb-4 sm:justify-start",
+			"fixed right-0 bottom-0 z-200 flex max-w-sm flex-col items-end gap-4 pr-4 pb-4 sm:justify-start",
 		),
 		h.Role("status"),
 		h.Aria("live", "polite"),
@@ -38,37 +38,18 @@ func (v *Toast) Fragment(text string) g.Node {
 			x.Data("toast"),
 			x.Show("show"),
 			x.Transition(".duration.500ms"),
-			h.Class("w-fit space-y-2 rounded-lg border border-gray-100 bg-white p-6 shadow-sm"),
-			h.Div(
-				h.Class("flex items-center justify-between gap-8"),
-				h.Span(g.Text(text)),
-				h.Button(
-					x.On("click", "destroy()"),
-					h.Class(
-						"relative rounded-full before:absolute before:-inset-4.5 before:content-[''] focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
-					),
-					h.Div(
-						h.Class("flex size-3 items-center justify-center"),
-						h.SVG(
-							g.Attr("viewBox", "0 0 512 512"),
-							g.El("g",
-								g.El(
-									"path",
-									g.Attr(
-										"d",
-										"m25 512a25 25 0 0 1 -17.68-42.68l462-462a25 25 0 0 1 35.36 35.36l-462 462a24.93 24.93 0 0 1 -17.68 7.32z",
-									),
-								),
-								g.El(
-									"path",
-									g.Attr(
-										"d",
-										"m487 512a24.93 24.93 0 0 1 -17.68-7.32l-462-462a25 25 0 0 1 35.36-35.36l462 462a25 25 0 0 1 -17.68 42.68z",
-									),
-								),
-							),
-						),
-					),
+			h.Class("flex gap-4 bg-background w-fit rounded-lg border p-6 shadow-lg"),
+			h.P(
+				h.Class("w-fit text-pretty md:text-sm"),
+				g.Text(text),
+			),
+			h.Button(
+				x.On("click", "destroy()"),
+				h.Class(
+					"h-fit ring-offset-background focus:ring-ring rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+				),
+				g.Raw(
+					`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`,
 				),
 			),
 		),

@@ -3,9 +3,9 @@ package view
 import (
 	"fmt"
 
+	"mimokocke/internal/model"
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/tenant"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -41,8 +41,8 @@ func (v *Layout) blank(children ...g.Node) g.Node {
 func (v *Layout) app(identity authz.Identity, children ...g.Node) g.Node {
 	return v.base(
 		h.Div(
-			x.Data(`{ sidebarOpen: false }`),
 			x.Cloak(),
+			x.Data(`{ sidebarOpen: false }`),
 			h.Class("flex flex-1 flex-col"),
 			h.Div(
 				h.Class("flex min-h-svh w-full"),
@@ -80,6 +80,12 @@ func (v *Layout) base(children ...g.Node) g.Node {
 			h.Script(h.Type("module"), h.Src(getAssetPath("view"))),
 		},
 		HTMLAttrs: g.Group{
+			x.Cloak(),
+			x.Data(`{ darkMode: localStorage.getItem('theme') === 'dark' }`),
+			x.Init(
+				`$watch('darkMode', value => localStorage.setItem('theme', value ? 'dark' : 'light'))`,
+			),
+			x.Bind("class", `darkMode && "dark"`),
 			h.Class("font-sans"),
 		},
 	})
@@ -89,31 +95,52 @@ func (v *Layout) sidebar(identity authz.Identity) g.Node {
 	return h.Div(
 		h.Class("relative"),
 		h.Div(
-			h.Class("[--sidebar-width:16rem] text-sidebar-foreground hidden md:block"),
+			c.Classes{
+				"[--sidebar-width:16rem] text-sidebar-foreground md:block": true,
+			},
 			h.Div(
+				x.Show("sidebarOpen"),
+				x.On("click", "sidebarOpen = false"),
+				x.Transition(`:enter="transition-opacity ease-out duration-300"`),
+				x.Transition(`:enter-start="opacity-0"`),
+				x.Transition(`:enter-end="opacity-100"`),
+				x.Transition(`:leave="transition ease-in duration-300"`),
+				x.Transition(`:leave-start="opacity-100"`),
+				x.Transition(`:leave-end="opacity-0"`),
 				c.Classes{
-					"relative h-svh w-(--sidebar-width) bg-transparent": true,
-					"transition-[width] duration-200 ease-linear":       true,
+					"fixed inset-0 z-50 bg-black/80 md:hidden!": true,
 				},
 			),
 			h.Div(
+				x.Show("sidebarOpen"),
 				c.Classes{
-					"fixed inset-y-0 /z-10 hidden h-svh w-(--sidebar-width) md:flex left-0": true,
-					"transition-[left,right,width] duration-200 ease-linear":                true,
+					"relative h-svh w-(--sidebar-width) hidden bg-transparent md:block!": true,
+				},
+			),
+			h.Div(
+				x.Show("sidebarOpen"),
+				x.Transition(`:enter="transition-[left] ease-in-out duration-300"`),
+				x.Transition(`:enter-start="-left-full"`),
+				x.Transition(`:enter-end="left-0"`),
+				x.Transition(`:leave="transition-[left] ease-in-out duration-300"`),
+				x.Transition(`:leave-start="left-0"`),
+				x.Transition(`:leave-end="-left-full"`),
+				c.Classes{
+					"fixed inset-y-0 z-50 h-svh w-(--sidebar-width) md:flex! /left-0": true,
 				},
 				h.Div(
 					h.Class("bg-sidebar flex flex-col h-full w-full"),
-					v.sidebarHeader(),
-					g.If(identity.OrganizationSlug == "", v.sidebarContentEmpty()),
-					g.If(identity.OrganizationSlug != "", v.sidebarContent(identity)),
-					v.sidebarFooter(),
+					v.sidebarHeader(identity),
+					g.If(identity.OrgSlug == "", v.sidebarContentEmpty()),
+					g.If(identity.OrgSlug != "", v.sidebarContent(identity)),
+					v.sidebarFooter(identity),
 				),
 			),
 		),
 	)
 }
 
-func (v *Layout) sidebarHeader() g.Node {
+func (v *Layout) sidebarHeader(identity authz.Identity) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -163,11 +190,11 @@ func (v *Layout) sidebarHeader() g.Node {
 						h.Class("grid flex-1 text-left text-xs leading-tight"),
 						h.Span(
 							h.Class("truncate font-semibold"),
-							g.Text("Artifact Admin Kit"),
+							g.Text(identity.OrgName),
 						),
 						h.Span(
 							h.Class("truncate text-xs"),
-							g.Text("Nextjs + shadcn/ui"),
+							g.Text(identity.OrgSlug),
 						),
 					),
 					g.Raw(
@@ -185,7 +212,7 @@ func (v *Layout) sidebarHeaderPopover() g.Node {
 		x.Show("menuOpen"),
 		x.On("click.outside", "menuOpen = false"),
 		c.Classes{
-			"absolute left-full top-0": true,
+			"absolute top-full inset-x-2 md:left-full md:ml-2 md:top-0 md:mt-2":                                true,
 			"bg-popover text-popover-foreground z-50 overflow-hidden border p-1 shadow-md min-w-56 rounded-lg": true,
 		},
 		h.Div(
@@ -224,7 +251,7 @@ func (v *Layout) sidebarHeaderPopover() g.Node {
 }
 
 func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
-	organizations []tenant.Organization,
+	organizations []model.Organization,
 ) g.Node {
 	return g.El(
 		"hx-partial",
@@ -232,8 +259,9 @@ func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
 		hx.Swap("outerHTML"),
 		h.Div(
 			h.ID(idSidebarPopoverItems),
-			g.Map(organizations, func(organization tenant.Organization) g.Node {
+			g.Map(organizations, func(organization model.Organization) g.Node {
 				return h.A(
+					hx.Boost("true"),
 					c.Classes{
 						"relative flex cursor-default items-center rounded-sm text-sm outline-hidden transition-colors select-none gap-2 p-2 text-balance": true,
 						"hocus:bg-accent hocus:text-accent-foreground": true,
@@ -241,20 +269,24 @@ func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
 					},
 					h.Href(fmt.Sprintf(routes.OrgDashboard, organization.Slug)),
 					h.Div(
-						h.Class(
-							"flex size-6 items-center justify-center rounded-sm border",
+						c.Classes{
+							"flex size-6 items-center justify-center rounded-sm border":   true,
+							"[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0": true,
+						},
+						g.Raw(
+							`<svg id="fi_2891415" enable-background="new 0 0 24 24" height="512" viewBox="0 0 24 24" width="512" xmlns="http://www.w3.org/2000/svg"><g id="XMLID_1_"><path d="m14 9.09 8.81 1.75c.71.15 1.19.75 1.19 1.46v10.2c0 .83-.67 1.5-1.5 1.5h-9c.28 0 .5-.22.5-.5v-.5h8.5c.27 0 .5-.22.5-.5v-10.2c0-.23-.16-.44-.39-.49l-8.61-1.7z"></path><path d="m19.5 14c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m19.5 17c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m19.5 20c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m14 23.5c0 .28-.22.5-.5.5s-.5-.22-.5-.5v-.5-13.5c0-.15.07-.29.18-.39.12-.09.27-.13.42-.1l.4.08v1.02 12.89z"></path><path d="m13 23v.5c0 .28.22.5.5.5h-4c.28 0 .5-.22.5-.5v-.5z"></path><path d="m10.5 5c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m11 8.5c0 .28-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5h2c.28 0 .5.22.5.5z"></path><path d="m10.5 11c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m10.5 14c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m6 14.5c0 .28-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5h2c.28 0 .5.22.5.5z"></path><path d="m5.5 5c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m5.5 8c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m5.5 11c.28 0 .5.22.5.5s-.22.5-.5.5h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5z"></path><path d="m9 18.5c0-.28-.23-.5-.5-.5h-3c-.28 0-.5.22-.5.5v4.5h-1v-4.5c0-.83.67-1.5 1.5-1.5h3c.83 0 1.5.67 1.5 1.5v4.5h-1z"></path><path d="m5 23h4 1v.5c0 .28-.22.5-.5.5h-5c-.28 0-.5-.22-.5-.5v-.5z"></path><path d="m1.75.2 10.99 1.67c.73.12 1.26.74 1.26 1.48v5.74l-.4-.08c-.15-.03-.3.01-.42.1-.11.1-.18.24-.18.39v-6.15c0-.25-.18-.46-.42-.5l-10.99-1.66c-.03-.01-.06-.01-.09-.01-.12 0-.23.04-.32.12-.12.1-.18.23-.18.38v20.82c0 .28.23.5.5.5h2.5v.5c0 .28.22.5.5.5h-3c-.83 0-1.5-.67-1.5-1.5v-20.82c0-.44.19-.86.53-1.14.34-.29.78-.41 1.22-.34z"></path></g></svg>`,
 						),
-						h.Img(
-							h.Alt("Artifact"),
-							h.Loading("lazy"),
-							h.Width("18"),
-							h.Height("18"),
-							g.Attr("decoding", "async"),
-							h.Data("nimg", "1"),
-							h.Class("size-4 shrink-0 dark:hidden"),
-							h.Src(organization.Slug),
-							h.Style("color: transparent;"),
-						),
+						// h.Img(
+						// 	h.Alt("Artifact"),
+						// 	h.Loading("lazy"),
+						// 	h.Width("18"),
+						// 	h.Height("18"),
+						// 	g.Attr("decoding", "async"),
+						// 	h.Data("nimg", "1"),
+						// 	h.Class("size-4 shrink-0 dark:hidden"),
+						// 	h.Src(""),
+						// 	h.Style("color: transparent;"),
+						// ),
 					),
 					g.Text(organization.Name),
 					h.Span(
@@ -293,10 +325,10 @@ func (v *Layout) OrganizationCreateFormModal() g.Node {
 					g.Text("Name"),
 				),
 				h.Input(
-					g.Attr("autofocus"),
 					h.Class(
 						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden md:text-sm col-span-4",
 					),
+					h.AutoFocus(),
 					h.Placeholder("Example Company"),
 					h.AutoComplete("off"),
 					h.Value(""),
@@ -359,13 +391,14 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 				h.Li(
 					h.Class("relative"),
 					h.A(
+						hx.Boost("true"),
 						c.Classes{
 							"flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-hidden ring-sidebar-ring h-8 text-sm": true,
 							"transition-[width,height,padding] ": true,
 							"focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": true,
 							"[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 ":                                                                                    true,
 						},
-						h.Href(fmt.Sprintf(routes.OrgDashboard, identity.OrganizationSlug)),
+						h.Href(fmt.Sprintf(routes.OrgDashboard, identity.OrgSlug)),
 						g.Raw(
 							`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-layout-dashboard "><path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1"></path><path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1"></path><path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1"></path><path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1"></path></svg>`,
 						),
@@ -377,13 +410,14 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 				h.Li(
 					h.Class("relative"),
 					h.A(
+						hx.Boost("true"),
 						c.Classes{
 							"flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-hidden ring-sidebar-ring h-8 text-sm": true,
 							"transition-[width,height,padding]": true,
 							"focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": true,
 							"[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0":                                                                                     true,
 						},
-						h.Href(fmt.Sprintf(routes.OrgMemberships, identity.OrganizationSlug)),
+						h.Href(fmt.Sprintf(routes.OrgMemberships, identity.OrgSlug)),
 						g.Raw(
 							`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-users "><path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"></path></svg>`,
 						),
@@ -392,18 +426,31 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 						),
 					),
 				),
+				h.Li(
+					h.Class("relative"),
+					h.A(
+						hx.Boost("true"),
+						c.Classes{
+							"flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-hidden ring-sidebar-ring h-8 text-sm": true,
+							"transition-[width,height,padding] ": true,
+							"focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": true,
+							"[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 ":                                                                                    true,
+						},
+						h.Href(fmt.Sprintf(routes.OrgChannels, identity.OrgSlug)),
+						g.Raw(
+							`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-apps "><path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 7l6 0"></path><path d="M17 4l0 6"></path></svg>`,
+						),
+						h.Span(
+							g.Text("Channels"),
+						),
+					),
+				),
 			),
 		),
 	)
 }
 
-func (v *Layout) sidebarFooter() g.Node {
-	type menuItem struct {
-		href string
-		svg  string
-		text string
-	}
-
+func (v *Layout) sidebarFooter(identity authz.Identity) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -442,11 +489,11 @@ func (v *Layout) sidebarFooter() g.Node {
 						h.Class("grid flex-1 text-left text-sm leading-tight"),
 						h.Span(
 							h.Class("truncate font-semibold"),
-							g.Text("Cruip"),
+							g.Textf("%s %s", identity.FirstName, identity.LastName),
 						),
 						h.Span(
 							h.Class("truncate text-xs"),
-							g.Text("cruip@example.com"),
+							g.Text(identity.Email),
 						),
 					),
 					g.Raw(
@@ -455,90 +502,100 @@ func (v *Layout) sidebarFooter() g.Node {
 				),
 			),
 		),
-		// Popover
+		v.sidebarFooterPopover(identity),
+	)
+}
+
+func (v *Layout) sidebarFooterPopover(identity authz.Identity) g.Node {
+	type menuItem struct {
+		href string
+		svg  string
+		text string
+	}
+
+	return h.Div(
+		x.Show("menuOpen"),
+		x.On("click.outside", "menuOpen = false"),
+		c.Classes{
+			"absolute bottom-full inset-x-2 md:left-full md:ml-2 md:bottom-0 md:mb-2":                          true,
+			"bg-popover text-popover-foreground z-50 overflow-hidden border p-1 shadow-md min-w-56 rounded-lg": true,
+		},
 		h.Div(
-			x.Show("menuOpen"),
-			x.On("click.outside", "menuOpen = false"),
-			c.Classes{
-				"absolute left-full bottom-0": true,
-				"bg-popover text-popover-foreground z-50 overflow-hidden border p-1 shadow-md min-w-56 rounded-lg": true,
-			},
+			h.Class("text-sm p-0 font-normal"),
 			h.Div(
-				h.Class("text-sm p-0 font-normal"),
+				h.Class("flex items-center gap-2 px-1 py-1.5 text-left text-sm"),
+				h.Span(
+					h.Class("relative flex shrink-0 overflow-hidden h-8 w-8 rounded-lg"),
+					h.Img(
+						h.Class("aspect-square h-full w-full"),
+						h.Alt("Cruip"),
+						h.Src(
+							"https://artifact-nextjs-template.vercel.app/avatars/cruip-avatar.svg",
+						),
+					),
+				),
 				h.Div(
-					h.Class("flex items-center gap-2 px-1 py-1.5 text-left text-sm"),
+					h.Class("grid flex-1 text-left text-sm leading-tight"),
 					h.Span(
-						h.Class("relative flex shrink-0 overflow-hidden h-8 w-8 rounded-lg"),
-						h.Img(
-							h.Class("aspect-square h-full w-full"),
-							h.Alt("Cruip"),
-							h.Src(
-								"https://artifact-nextjs-template.vercel.app/avatars/cruip-avatar.svg",
-							),
-						),
+						h.Class("truncate font-semibold"),
+						g.Textf("%s %s", identity.FirstName, identity.LastName),
 					),
-					h.Div(
-						h.Class("grid flex-1 text-left text-sm leading-tight"),
-						h.Span(
-							h.Class("truncate font-semibold"),
-							g.Text("Cruip"),
-						),
-						h.Span(
-							h.Class("truncate text-xs"),
-							g.Text("cruip@example.com"),
-						),
+					h.Span(
+						h.Class("truncate text-xs"),
+						g.Text(identity.Email),
 					),
 				),
 			),
-			h.Div(
-				h.Class("bg-muted -mx-1 my-1 h-px"),
-			),
-			h.Div(
-				g.Map([]menuItem{
-					{
-						href: "#",
-						text: "Profile",
-						svg:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-check" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="m9 12 2 2 4-4"></path></svg>`,
-					},
-					{
-						href: "#",
-						text: "Billing",
-						svg:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>`,
-					},
-					{
-						href: "#",
-						text: "Notifications",
-						svg:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>`,
-					},
-				}, func(item menuItem) g.Node {
-					return h.A(
-						c.Classes{
-							"relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden transition-colors select-none ": true,
-							"hocus:bg-accent hocus:text-accent-foreground": true,
-							"[&>svg]:size-4 [&>svg]:shrink-0":              true,
-						},
-						h.Href(item.href),
-						g.Raw(item.svg),
-						g.Text(item.text),
-					)
-				}),
-			),
-			h.Div(
-				h.Class("bg-muted -mx-1 my-1 h-px"),
-			),
-			h.Div(
-				hx.Post(routes.HXLogout),
-				hx.Swap("none"),
-				c.Classes{
-					"relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden transition-colors select-none": true,
-					"hocus:bg-accent hocus:text-accent-foreground": true,
-					"[&>svg]:size-4 [&>svg]:shrink-0":              true,
+		),
+		h.Div(
+			h.Class("bg-muted -mx-1 my-1 h-px"),
+		),
+		h.Div(
+			g.Map([]menuItem{
+				{
+					href: "#",
+					text: "Profile",
+					svg:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-badge-check" aria-hidden="true"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path><path d="m9 12 2 2 4-4"></path></svg>`,
 				},
-				g.Raw(
-					`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out" aria-hidden="true"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>`,
-				),
-				g.Text("Logout"),
+				{
+					href: "#",
+					text: "Billing",
+					svg:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg>`,
+				},
+				{
+					href: "#",
+					text: "Notifications",
+					svg:  `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell" aria-hidden="true"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>`,
+				},
+			}, func(item menuItem) g.Node {
+				return h.A(
+					hx.Boost("true"),
+					c.Classes{
+						"relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden transition-colors select-none ": true,
+						"hocus:bg-accent hocus:text-accent-foreground": true,
+						"[&>svg]:size-4 [&>svg]:shrink-0":              true,
+					},
+					h.Href(item.href),
+					g.Raw(item.svg),
+					g.Text(item.text),
+				)
+			}),
+		),
+		h.Div(
+			h.Class("bg-muted -mx-1 my-1 h-px"),
+		),
+		h.Div(
+			hx.Post(routes.HXLogout),
+			hx.Swap("none"),
+			c.Classes{
+				"relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden transition-colors select-none": true,
+				"hocus:bg-accent hocus:text-accent-foreground": true,
+				"[&>svg]:size-4 [&>svg]:shrink-0":              true,
+			},
+			g.Raw(
+				`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out" aria-hidden="true"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>`,
 			),
+			g.Text("Logout"),
 		),
 	)
 }
@@ -558,11 +615,12 @@ func (v *Layout) contentHeader() g.Node {
 		h.Class(
 			"bg-background grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b px-4 py-4 sm:gap-3 sm:px-6",
 		),
-		//
 		h.Button(
-			h.Class(
-				"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground size-8 shrink-0",
-			),
+			x.On("click", `sidebarOpen = !sidebarOpen; console.log(sidebarOpen)`),
+			c.Classes{
+				"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground size-8 shrink-0": true,
+				"md:invisible": true,
+			},
 			g.Raw(
 				`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-panel-left" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></svg>`,
 			),
@@ -575,11 +633,11 @@ func (v *Layout) contentHeader() g.Node {
 			h.Class("min-w-0"),
 			h.H1(
 				h.Class("truncate text-base font-medium"),
-				// g.Text("Ecommerce App"),
+				g.Text(""),
 			),
 		),
 		h.Button(
-			x.On("click", "console.log('theme should be dark')"),
+			x.On("click", "darkMode = !darkMode; console.log(darkMode)"),
 			h.Class(
 				"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground size-9 scale-100 rounded-lg",
 			),

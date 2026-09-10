@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +13,8 @@ import (
 	"time"
 	"uuid"
 
+	"mimokocke/internal/model"
+	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/routes"
@@ -59,19 +62,23 @@ func NewService(
 func (s *Service) LoginUserWithPassword(
 	ctx context.Context,
 	email, password string,
-) (Session, error) {
-	authentication, err := s.authRepo.GetAuthenticationByEmail(ctx, email, AuthProviderPassword)
+) (model.Session, error) {
+	authentication, err := s.authRepo.GetAuthenticationByEmail(
+		ctx,
+		email,
+		model.AuthProviderPassword,
+	)
 	if err != nil {
-		return Session{}, err
+		return model.Session{}, err
 	}
 
 	if !CheckPasswordHash(password, *authentication.PasswordHash) {
-		return Session{}, fmt.Errorf("invalid password")
+		return model.Session{}, fmt.Errorf("invalid password")
 	}
 
 	session, err := s.createSession(ctx, nil, authentication.UserID)
 	if err != nil {
-		return Session{}, err
+		return model.Session{}, err
 	}
 
 	return session, nil
@@ -85,48 +92,41 @@ type RegisterUserWithPasswordParams struct {
 func (s *Service) RegisterUserWithPassword(
 	ctx context.Context,
 	params RegisterUserWithPasswordParams,
-) (Session, error) {
-	var zero Session
+) (model.Session, error) {
+	var session model.Session
 
-	tx, err := s.authRepo.pool.Begin(ctx)
-	if err != nil {
-		return zero, nil
-	}
-	defer func() {
-		_ = tx.Rollback(ctx)
-	}()
+	err := pgx.BeginFunc(ctx, s.authRepo.Pool, func(tx pgx.Tx) error {
+		user, err := s.authRepo.CreateUser(ctx, tx, model.User{
+			ID:    uuid.NewV7(),
+			Email: params.Email,
+		})
+		if err != nil {
+			return err
+		}
 
-	user, err := s.authRepo.CreateUser(ctx, tx, User{
-		ID:    uuid.NewV7(),
-		Email: params.Email,
+		passwordHash, err := HashPassword(params.Password)
+		if err != nil {
+			return err
+		}
+
+		_, err = s.authRepo.CreateAuthentication(ctx, tx, model.Authentication{
+			ID:           uuid.NewV7(),
+			UserID:       user.ID,
+			Provider:     model.AuthProviderPassword,
+			PasswordHash: &passwordHash,
+		})
+		if err != nil {
+			return err
+		}
+
+		session, err = s.createSession(ctx, tx, user.ID)
+		if err != nil {
+			return err
+		}
+		return nil
 	})
 	if err != nil {
-		return zero, err
-	}
-
-	passwordHash, err := HashPassword(params.Password)
-	if err != nil {
-		return zero, err
-	}
-
-	_, err = s.authRepo.CreateAuthentication(ctx, tx, Authentication{
-		ID:           uuid.NewV7(),
-		UserID:       user.ID,
-		Provider:     AuthProviderPassword,
-		PasswordHash: &passwordHash,
-	})
-	if err != nil {
-		return zero, err
-	}
-
-	session, err := s.createSession(ctx, tx, user.ID)
-	if err != nil {
-		return zero, err
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return zero, nil
+		return model.Session{}, err
 	}
 
 	return session, nil
@@ -153,8 +153,8 @@ type googleUserInfo struct {
 	VerifiedEmail bool   `json:"verified_email"`
 }
 
-func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (Session, error) {
-	var zero Session
+func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (model.Session, error) {
+	var zero model.Session
 
 	token, err := s.googleOauthConfig.Exchange(ctx, code)
 	if err != nil {
@@ -185,59 +185,52 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (Session
 	// Ce ni authentication za ta mail potem naredimo userja in
 	// ce dobimo error to pomeni da user ze obstaja torej bo moral
 	// se prvo prijavit in potem linkat.
-
 	authentication, err := s.authRepo.GetAuthenticationByProvider(
 		ctx,
-		AuthProviderGoogle,
+		model.AuthProviderGoogle,
 		userInfo.ID,
 	)
 	if err != nil {
-		tx, err := s.authRepo.pool.Begin(ctx)
-		if err != nil {
+		if !errors.Is(err, db.ErrNotFound) {
 			return zero, err
 		}
-		defer func() {
-			err := tx.Rollback(ctx)
+
+		txErr := pgx.BeginFunc(ctx, s.authRepo.Pool, func(tx pgx.Tx) error {
+			newUser, err := s.authRepo.CreateUser(ctx, tx, model.User{
+				ID:    uuid.NewV7(),
+				Email: userInfo.Email,
+			})
 			if err != nil {
-				s.logger.Error("rollback failed", "err", err)
-				return
+				return fmt.Errorf("creating user: %w", err)
 			}
-		}()
 
-		newUser, err := s.authRepo.CreateUser(ctx, nil, User{
-			ID:    uuid.NewV7(),
-			Email: userInfo.Email,
+			authentication, err = s.authRepo.CreateAuthentication(ctx, tx, model.Authentication{
+				ID:         uuid.NewV7(),
+				UserID:     newUser.ID,
+				Provider:   model.AuthProviderGoogle,
+				ProviderID: &userInfo.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("craeting authentication: %w", err)
+			}
+
+			return nil
 		})
-		if err != nil {
-			return zero, err
-		}
-
-		authentication, err = s.authRepo.CreateAuthentication(ctx, tx, Authentication{
-			ID:         uuid.NewV7(),
-			UserID:     newUser.ID,
-			Provider:   AuthProviderGoogle,
-			ProviderID: &userInfo.ID,
-		})
-		if err != nil {
-			return zero, err
-		}
-
-		err = tx.Commit(ctx)
-		if err != nil {
+		if txErr != nil {
 			return zero, err
 		}
 	}
 
 	session, err := s.createSession(ctx, nil, authentication.UserID)
 	if err != nil {
-		return zero, err
+		return zero, fmt.Errorf("craeting session: %w", err)
 	}
 
 	return session, nil
 }
 
-func (s *Service) VerifySession(ctx context.Context, sessionID string) (Session, error) {
-	var zero Session
+func (s *Service) VerifySession(ctx context.Context, sessionID string) (model.Session, error) {
+	var zero model.Session
 
 	id, err := uuid.Parse(sessionID)
 	if err != nil {
@@ -262,18 +255,22 @@ func (s *Service) LogoutUser(ctx context.Context, sessionIDStr string) error {
 		return err
 	}
 
-	err = s.authRepo.DeleteSession(ctx, sessionID)
+	err = s.authRepo.DeleteSession(ctx, nil, sessionID)
 	return err
 }
 
-func (s *Service) createSession(ctx context.Context, tx pgx.Tx, userID uuid.UUID) (Session, error) {
-	session, err := s.authRepo.CreateSession(ctx, tx, Session{
+func (s *Service) createSession(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID uuid.UUID,
+) (model.Session, error) {
+	session, err := s.authRepo.CreateSession(ctx, tx, model.Session{
 		ID:        uuid.NewV7(),
 		UserID:    userID,
 		ExpiresAt: s.clock.NowUTC().Add(time.Hour * 24 * 14), // 14 days
 	})
 	if err != nil {
-		return Session{}, err
+		return model.Session{}, err
 	}
 	return session, nil
 }

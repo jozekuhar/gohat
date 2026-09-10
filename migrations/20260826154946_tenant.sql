@@ -18,6 +18,8 @@ CREATE TABLE memberships (
     role TEXT NOT NULL,
     permissions TEXT[],
     status TEXT NOT NULL,
+    canceled_at TIMESTAMPTZ,
+    canceled_by_id UUID REFERENCES users (id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ,
     UNIQUE (organization_id, user_id),
@@ -32,6 +34,7 @@ CREATE TABLE memberships (
 CREATE TABLE invitations (
     id UUID PRIMARY KEY,
     organization_id UUID NOT NULL REFERENCES organizations (id),
+    inviter_id UUID NOT NULL REFERENCES users (id),
     email TEXT NOT NULL,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
@@ -39,6 +42,10 @@ CREATE TABLE invitations (
     permissions TEXT[],
     token_hash TEXT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
+    accepted_at TIMESTAMPTZ,
+    declined_at TIMESTAMPTZ,
+    canceled_at TIMESTAMPTZ,
+    canceled_by_id UUID REFERENCES users (id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT invitations_role_check CHECK (
         role IN ('owner', 'admin', 'member')

@@ -2,69 +2,58 @@ package auth
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"uuid"
 
+	"mimokocke/internal/model"
+	"mimokocke/internal/provider/db"
+
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type repository struct {
-	pool *pgxpool.Pool
+	*db.BaseRepo
 }
 
-func NewRepository(pool *pgxpool.Pool) *repository {
+func NewRepository(baseRepo *db.BaseRepo) *repository {
 	return &repository{
-		pool: pool,
+		BaseRepo: baseRepo,
 	}
 }
 
-func (r *repository) CreateUser(ctx context.Context, tx pgx.Tx, u User) (User, error) {
+func (r *repository) CreateUser(ctx context.Context, tx pgx.Tx, u model.User) (model.User, error) {
 	stmt := `
-        INSERT INTO users (id, email)
-		VALUES (@id, @email)
+		INSERT INTO users (id, email) 
+		VALUES (@id, @email) 
 		RETURNING *
-    `
+	`
 
-	queryFn := r.pool.Query
-	if tx != nil {
-		queryFn = tx.Query
-	}
-
-	rows, err := queryFn(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.DB(tx).Query(ctx, stmt, pgx.NamedArgs{
 		"id":    u.ID,
 		"email": u.Email,
 	})
 	if err != nil {
-		return User{}, err
+		// TODO(jozekuhar): errors for users, kot je index err user already exists
+		return model.User{}, err
 	}
 	defer rows.Close()
 
-	user, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
-	if err != nil {
-		// TODO(jozekuhar): check error and return ErrUserAlreadyExiss
-		return User{}, err
-	}
-
-	return user, nil
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.User])
 }
 
 func (r *repository) CreateAuthentication(
 	ctx context.Context,
 	tx pgx.Tx,
-	a Authentication,
-) (Authentication, error) {
+	a model.Authentication,
+) (model.Authentication, error) {
 	stmt := `
         INSERT INTO authentications (id, user_id, provider, provider_id, password_hash)
 		VALUES (@id, @user_id, @provider, @provider_id, @password_hash)
 		RETURNING *
     `
 
-	queryFn := r.pool.Query
-	if tx != nil {
-		queryFn = tx.Query
-	}
-
-	rows, err := queryFn(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.DB(tx).Query(ctx, stmt, pgx.NamedArgs{
 		"id":            a.ID,
 		"user_id":       a.UserID,
 		"provider":      a.Provider,
@@ -72,18 +61,19 @@ func (r *repository) CreateAuthentication(
 		"password_hash": a.PasswordHash,
 	})
 	if err != nil {
-		return Authentication{}, err
+		// TODO(jozekuhar): error authentication for user_id and provider_id already exists
+		return model.Authentication{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Authentication])
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.Authentication])
 }
 
 func (r *repository) GetAuthenticationByEmail(
 	ctx context.Context,
 	email string,
-	provider AuthProvider,
-) (Authentication, error) {
+	provider model.AuthProvider,
+) (model.Authentication, error) {
 	stmt := `
 		SELECT a.*
 		FROM authentications a
@@ -92,23 +82,31 @@ func (r *repository) GetAuthenticationByEmail(
 		  AND a.provider = @provider
     `
 
-	rows, err := r.pool.Query(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.DB(nil).Query(ctx, stmt, pgx.NamedArgs{
 		"email":    email,
 		"provider": provider,
 	})
 	if err != nil {
-		return Authentication{}, err
+		return model.Authentication{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Authentication])
+	authentication, err := pgx.CollectExactlyOneRow(
+		rows,
+		pgx.RowToStructByName[model.Authentication],
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.Authentication{}, fmt.Errorf("authentication: %w", db.ErrNotFound)
+	}
+
+	return authentication, err
 }
 
 func (r *repository) GetAuthenticationByProvider(
 	ctx context.Context,
-	provider AuthProvider,
+	provider model.AuthProvider,
 	providerID string,
-) (Authentication, error) {
+) (model.Authentication, error) {
 	stmt := `
 		SELECT *
 		FROM authentications
@@ -116,67 +114,80 @@ func (r *repository) GetAuthenticationByProvider(
 		  AND provider_id = @provider_id
     `
 
-	rows, err := r.pool.Query(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.DB(nil).Query(ctx, stmt, pgx.NamedArgs{
 		"provider":    provider,
 		"provider_id": providerID,
 	})
 	if err != nil {
-		return Authentication{}, err
+		return model.Authentication{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Authentication])
+	authentication, err := pgx.CollectExactlyOneRow(
+		rows,
+		pgx.RowToStructByName[model.Authentication],
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.Authentication{}, fmt.Errorf("authentication: %w", db.ErrNotFound)
+	}
+
+	return authentication, err
 }
 
-func (r *repository) CreateSession(ctx context.Context, tx pgx.Tx, s Session) (Session, error) {
+func (r *repository) CreateSession(
+	ctx context.Context,
+	tx pgx.Tx,
+	s model.Session,
+) (model.Session, error) {
 	stmt := `
         INSERT INTO sessions (id, user_id, expires_at)
 		VALUES (@id, @user_id, @expires_at)
 		RETURNING *
     `
 
-	queryFn := r.pool.Query
-	if tx != nil {
-		queryFn = tx.Query
-	}
-
-	rows, err := queryFn(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.DB(tx).Query(ctx, stmt, pgx.NamedArgs{
 		"id":         s.ID,
 		"user_id":    s.UserID,
 		"expires_at": s.ExpiresAt,
 	})
 	if err != nil {
-		return Session{}, err
+		// TODO(jozekuhar): session already exists for user?
+		return model.Session{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Session])
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.Session])
 }
 
-func (r *repository) GetSession(ctx context.Context, sessionID uuid.UUID) (Session, error) {
+func (r *repository) GetSession(ctx context.Context, sessionID uuid.UUID) (model.Session, error) {
 	stmt := `
         SELECT * FROM sessions
 		WHERE id = @session_id
     `
 
-	rows, err := r.pool.Query(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.DB(nil).Query(ctx, stmt, pgx.NamedArgs{
 		"session_id": sessionID,
 	})
 	if err != nil {
-		return Session{}, err
+		return model.Session{}, err
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[Session])
+	session, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.Session])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return model.Session{}, fmt.Errorf("session: %w", db.ErrNotFound)
+	}
+
+	return session, err
 }
 
-func (r *repository) DeleteSession(ctx context.Context, sessionID uuid.UUID) error {
+func (r *repository) DeleteSession(ctx context.Context, tx pgx.Tx, sessionID uuid.UUID) error {
 	stmt := `
         DELETE FROM sessions
 		WHERE id = @id
     `
 
-	_, err := r.pool.Exec(ctx, stmt, pgx.NamedArgs{
+	_, err := r.DB(tx).Exec(ctx, stmt, pgx.NamedArgs{
 		"id": sessionID,
 	})
 	return err

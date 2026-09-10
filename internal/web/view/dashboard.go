@@ -1,8 +1,8 @@
 package view
 
 import (
+	"mimokocke/internal/model"
 	"mimokocke/internal/shared/authz"
-	"mimokocke/internal/tenant"
 
 	g "maragu.dev/gomponents"
 	h "maragu.dev/gomponents/html"
@@ -23,11 +23,11 @@ func NewDashboard() *Dashboard {
 	}
 }
 
-func (v *Dashboard) OrganizationsPage(identity authz.Identity, orgs []tenant.Organization) g.Node {
+func (v *Dashboard) OrganizationsPage(identity authz.Identity, orgs []model.Organization) g.Node {
 	return v.layout.app(
 		identity,
 		h.Main(
-			g.Text("Index page"),
+			g.Text("Index"),
 		),
 	)
 }
@@ -36,7 +36,7 @@ func (v *Dashboard) DashboardPage(identity authz.Identity) g.Node {
 	return v.layout.app(
 		identity,
 		h.Main(
-			g.Text("Organizations Detail Page"),
+			g.Text("Dashboard"),
 		),
 	)
 }

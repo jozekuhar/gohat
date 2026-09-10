@@ -2,6 +2,8 @@ package routes
 
 const (
 	PathOrganizationSlug = "organizationSlug"
+	PathMembershipID     = "membershipID"
+	PathInvitationToken  = "invitationToken"
 	PathInvitationID     = "invitationID"
 )
 
@@ -28,17 +30,17 @@ const (
 	OrgDashboardPath             = "/{" + PathOrganizationSlug + "}/dashboard"
 	OrgMemberships               = "/%s/memberships"
 	OrgMembershipsPath           = "/{" + PathOrganizationSlug + "}/memberships"
-	HXOrgMembershipsCreate       = "/hx/%s/memberships/create"
-	HXOrgMembershipsCreatePath   = "/hx/{" + PathOrganizationSlug + "}/memberships/create"
+	HXOrgMembershipsUpdate       = "/%s/memberships/%s/update"
+	HXOrgMembershipsUpdatePath   = "/{" + PathOrganizationSlug + "}/memberships/{" + PathMembershipID + "}/update"
+	HXOrgInvitationsCreate       = "/hx/%s/invitations/create"
+	HXOrgInvitationsCreatePath   = "/hx/{" + PathOrganizationSlug + "}/invitations/create"
+	InvitationsJoin              = "/invitations/%s/join"
+	InvitationsJoinPath          = "/invitations/{" + PathInvitationToken + "}/join"
+	HXInvitationsAccept          = "/invitations/%s/accept"
+	HXInvitationsAcceptPath      = "/invitations/{" + PathInvitationToken + "}/accept"
+	HXInvitationsDecline         = "/invitations/%s/decline"
+	HXInvitationsDeclinePath     = "/invitations/{" + PathInvitationToken + "}/decline"
 
-	// TO DO BELLOW
-	Invitations           = "/%s/invitations"
-	InvitationsPath       = "/{" + PathOrganizationSlug + "}/invitations"
-	InvitationsDetail     = "/%s/invitations/%s"
-	InvitationsDetailPath = "/{" + PathOrganizationSlug + "}/invitations/{" + PathInvitationID + "}"
-	InvitationsJoin       = "/%s/invitations/join"
-	InvitationsJoinPath   = "/{" + PathOrganizationSlug + "}/invitations/join"
-
-	Channels     = "/%s/channels"
-	ChannelsPath = "/{" + PathOrganizationSlug + "}/channels"
+	OrgChannels     = "/%s/channels"
+	OrgChannelsPath = "/{" + PathOrganizationSlug + "}/channels"
 )

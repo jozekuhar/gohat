@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -27,15 +26,15 @@ func NewChanneHandler(logger *slog.Logger, channelSrv *channel.Service) *channel
 func (h *channelHandler) GetChannels(w http.ResponseWriter, r *http.Request) {
 	identity := tenant.MustIdentityFromContext(r.Context())
 
-	channels, err := h.channelSrv.GetChannels(r.Context(), identity)
-	if err != nil {
-		h.logger.Error("getting channels", "err", err)
-		return
-	}
+	// channels, err := h.channelSrv.GetChannels(r.Context(), identity)
+	// if err != nil {
+	// 	h.logger.Error("getting channels", "err", err)
+	// 	return
+	// }
 
-	render(w, h.channelView.ChannelsPage(identity, channels))
+	render(w, h.channelView.ChannelsPage(identity, nil), http.StatusOK)
 }
 
 func (h *channelHandler) PostCreateChannel(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("channel created")
+	panic("unimplemented")
 }

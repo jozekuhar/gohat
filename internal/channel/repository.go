@@ -4,17 +4,18 @@ import (
 	"context"
 	"uuid"
 
+	"mimokocke/internal/provider/db"
+
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type repository struct {
-	pool *pgxpool.Pool
+	*db.BaseRepo
 }
 
-func NewRepository(pool *pgxpool.Pool) *repository {
+func NewRepository(baseRepo *db.BaseRepo) *repository {
 	return &repository{
-		pool: pool,
+		BaseRepo: baseRepo,
 	}
 }
 
@@ -24,7 +25,7 @@ func (r *repository) ListChannels(ctx context.Context, orgID uuid.UUID) ([]Chann
 		WHERE organization_id = @organization_id
     `
 
-	rows, err := r.pool.Query(ctx, stmt, pgx.NamedArgs{
+	rows, err := r.Pool.Query(ctx, stmt, pgx.NamedArgs{
 		"organization_id": orgID,
 	})
 	if err != nil {

@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"mimokocke/internal/shared/authz"
-
-	"github.com/goforj/godump"
 )
 
 type Service struct {
@@ -20,9 +18,8 @@ func NewService(channelRepo *repository) *Service {
 
 func (s *Service) GetChannels(ctx context.Context, identity authz.Identity) ([]Channel, error) {
 	// Permissions READ
-	godump.Dump(identity)
 
-	channels, err := s.channelRepo.ListChannels(ctx, identity.OrganizationID)
+	channels, err := s.channelRepo.ListChannels(ctx, identity.OrgID)
 	if err != nil {
 		return nil, err
 	}

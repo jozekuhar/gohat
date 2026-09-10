@@ -17,13 +17,13 @@ func NewCore() *Core {
 }
 
 func (h *Core) GetNotFound(w http.ResponseWriter, r *http.Request) {
-	render(w, h.coreView.NotFoundPage())
+	render(w, h.coreView.NotFoundPage(), http.StatusNotFound)
 }
 
 func (h *Core) GetTermsOfService(w http.ResponseWriter, r *http.Request) {
-	render(w, h.coreView.PrivacyPolicyPage())
+	render(w, h.coreView.PrivacyPolicyPage(), http.StatusOK)
 }
 
 func (h *Core) GetPrivacyPolicy(w http.ResponseWriter, r *http.Request) {
-	render(w, h.coreView.TermsOfServicePage())
+	render(w, h.coreView.TermsOfServicePage(), http.StatusOK)
 }

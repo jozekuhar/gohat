@@ -57,7 +57,10 @@ func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := auth.WithUserID(r.Context(), s.UserID)
+		ctx := auth.WithAuthContext(r.Context(), auth.AuthContext{
+			UserID:    s.UserID,
+			UserEmail: "peterpan@gmail.com", // todo
+		})
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -78,7 +81,10 @@ func (m *authMiddleware) OptionalAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := auth.WithUserID(r.Context(), s.UserID)
+		ctx := auth.WithAuthContext(r.Context(), auth.AuthContext{
+			UserID:    s.UserID,
+			UserEmail: "peterpan@gmail.com", // todo
+		})
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

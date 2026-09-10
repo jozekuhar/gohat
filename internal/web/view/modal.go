@@ -20,6 +20,7 @@ func newModal() *modal {
 
 func (v *modal) container() g.Node {
 	return h.Div(
+		h.Class("z-100"),
 		h.ID(idModalPortal),
 	)
 }
@@ -37,8 +38,7 @@ func (v *modal) fragment(nodes ...g.Node) g.Node {
 			x.Show("show"),
 			x.On("keydown.escape.window.prevent.stop", "destroy()"),
 			h.Style("display: none"),
-
-			h.Class("fixed inset-0 overflow-y-auto"),
+			h.Class("fixed inset-0 z-100 overflow-y-auto"),
 			h.Role("dialog"),
 			h.Aria("modal", "true"),
 			h.Aria("labelledby", titleID),
@@ -46,9 +46,7 @@ func (v *modal) fragment(nodes ...g.Node) g.Node {
 				x.Show("show"),
 				x.Transition(".opacity"),
 				h.Class("fixed inset-0 bg-black/80"),
-				// z-50 je bil na template
 			),
-
 			h.Div(
 				x.Show("show"),
 				x.Transition(),

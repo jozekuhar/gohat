@@ -6,6 +6,7 @@ import (
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
+	c "maragu.dev/gomponents/components"
 	h "maragu.dev/gomponents/html"
 )
 
@@ -236,93 +237,27 @@ func (v *Auth) LoginPage() g.Node {
 									h.Button(
 										hx.Get(routes.HXSignInGoogle),
 										hx.Swap("none"),
-										h.Class(
-											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full",
-										),
+										c.Classes{
+											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full": true,
+											"[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0": true,
+										},
 										h.Type("button"),
-										h.SVG(
-											h.Class("size-6"),
-											g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-											g.Attr("xlink", "http://www.w3.org/1999/xlink"),
-											g.Attr("x", "0px"),
-											g.Attr("y", "0px"),
-											g.Attr("viewBox", "0 0 210 210"),
-											h.Style("enable-background:new 0 0 210 210;"),
-											g.Attr("space", "preserve"),
-											g.El(
-												"path",
-												g.Attr(
-													"d",
-													"M0,105C0,47.103,47.103,0,105,0c23.383,0,45.515,7.523,64.004,21.756l-24.4,31.696C133.172,44.652,119.477,40,105,40\n\tc-35.841,0-65,29.159-65,65s29.159,65,65,65c28.867,0,53.398-18.913,61.852-45H105V85h105v20c0,57.897-47.103,105-105,105\n\tS0,162.897,0,105z",
-												),
-											),
+										g.Raw(
+											`<svg fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 210 210" style="enable-background:new 0 0 210 210;" xml:space="preserve"><path d="M0,105C0,47.103,47.103,0,105,0c23.383,0,45.515,7.523,64.004,21.756l-24.4,31.696C133.172,44.652,119.477,40,105,40 c-35.841,0-65,29.159-65,65s29.159,65,65,65c28.867,0,53.398-18.913,61.852-45H105V85h105v20c0,57.897-47.103,105-105,105 S0,162.897,0,105z"></path></svg>`,
 										),
-										// h.SVG(
-										// 	g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-										// 	h.Width("24"),
-										// 	h.Height("24"),
-										// 	g.Attr("viewBox", "0 0 24 24"),
-										// 	g.Attr("fill", "none"),
-										// 	g.Attr("stroke", "currentColor"),
-										// 	g.Attr("stroke-width", "2"),
-										// 	g.Attr("stroke-linecap", "round"),
-										// 	g.Attr("stroke-linejoin", "round"),
-										// 	h.Class("tabler-icon tabler-icon-brand-github h-4 w-4"),
-										// 	g.El(
-										// 		"path",
-										// 		g.Attr(
-										// 			"d",
-										// 			"M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5",
-										// 		),
-										// 	),
-										// ),
 										g.Text("Google"),
 									),
 									h.A(
 										hx.Boost("true"),
 										h.Href(routes.Register),
-										h.Class(
-											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full",
-										),
+										c.Classes{
+											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full": true,
+											"[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0": true,
+										},
 										h.Type("button"),
-										h.SVG(
-											h.Class("size-6"),
-											g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-											g.Attr("xlink", "http://www.w3.org/1999/xlink"),
-											g.Attr("x", "0px"),
-											g.Attr("y", "0px"),
-											g.Attr("viewBox", "0 0 512 512"),
-											h.Style("enable-background:new 0 0 512 512;"),
-											g.Attr("space", "preserve"),
-											g.El(
-												"path",
-												g.Attr(
-													"d",
-													"M463.748,48.251c-64.336-64.336-169.013-64.335-233.349,0.001c-43.945,43.945-59.209,108.706-40.181,167.461\n\t\t\tL4.396,401.536c-2.813,2.813-4.395,6.621-4.395,10.606V497c0,8.291,6.709,15,15,15h84.858c3.984,0,7.793-1.582,10.605-4.395\n\t\t\tl21.211-21.226c3.237-3.237,4.819-7.778,4.292-12.334l-2.637-22.793l31.582-2.974c7.178-0.674,12.847-6.343,13.521-13.521\n\t\t\tl2.974-31.582l22.793,2.651c4.233,0.571,8.496-0.85,11.704-3.691c3.193-2.856,5.024-6.929,5.024-11.206V363h27.422\n\t\t\tc3.984,0,7.793-1.582,10.605-4.395l38.467-37.958c58.74,19.043,122.381,4.929,166.326-39.046\n\t\t\tC528.084,217.266,528.084,112.587,463.748,48.251z M421.313,154.321c-17.549,17.549-46.084,17.549-63.633,0\n\t\t\ts-17.549-46.084,0-63.633s46.084-17.549,63.633,0S438.861,136.772,421.313,154.321z",
-												),
-											),
+										g.Raw(
+											`<svg fill="currentColor" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve"> <path d="M463.748,48.251c-64.336-64.336-169.013-64.335-233.349,0.001c-43.945,43.945-59.209,108.706-40.181,167.461    L4.396,401.536c-2.813,2.813-4.395,6.621-4.395,10.606V497c0,8.291,6.709,15,15,15h84.858c3.984,0,7.793-1.582,10.605-4.395    l21.211-21.226c3.237-3.237,4.819-7.778,4.292-12.334l-2.637-22.793l31.582-2.974c7.178-0.674,12.847-6.343,13.521-13.521    l2.974-31.582l22.793,2.651c4.233,0.571,8.496-0.85,11.704-3.691c3.193-2.856,5.024-6.929,5.024-11.206V363h27.422    c3.984,0,7.793-1.582,10.605-4.395l38.467-37.958c58.74,19.043,122.381,4.929,166.326-39.046    C528.084,217.266,528.084,112.587,463.748,48.251z M421.313,154.321c-17.549,17.549-46.084,17.549-63.633,0    s-17.549-46.084,0-63.633s46.084-17.549,63.633,0S438.861,136.772,421.313,154.321z"/></svg>`,
 										),
-										// h.SVG(
-										// 	g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-										// 	h.Width("24"),
-										// 	h.Height("24"),
-										// 	g.Attr("viewBox", "0 0 24 24"),
-										// 	g.Attr("fill", "none"),
-										// 	g.Attr("stroke", "currentColor"),
-										// 	g.Attr("stroke-width", "2"),
-										// 	g.Attr("stroke-linecap", "round"),
-										// 	g.Attr("stroke-linejoin", "round"),
-										// 	h.Class(
-										// 		"tabler-icon tabler-icon-brand-facebook h-4 w-4",
-										// 	),
-										// 	g.El(
-										// 		"path",
-										// 		g.Attr(
-										// 			"d",
-										// 			"M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3",
-										// 		),
-										// 	),
-										// ),
 										g.Text("Password"),
 									),
 								),

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"mimokocke/internal/auth"
+	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
@@ -32,14 +33,13 @@ func NewTenantMiddleware(
 
 func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.MustUserIDFomContext(r.Context())
+		authCtx := auth.MustAuthFromContext(r.Context())
 		orgSlug := r.PathValue(routes.PathOrganizationSlug)
 
 		// TODO(jozekuhar): change to identity, so i just go for membership
-		am, err := m.tenantSrv.GetActiveMembership(r.Context(), userID, orgSlug)
+		am, err := m.tenantSrv.GetActiveMembership(r.Context(), authCtx.UserID, orgSlug)
 		if err != nil {
-			if errors.Is(err, tenant.ErrMembershipNotFound) {
-				w.WriteHeader(http.StatusNotFound)
+			if errors.Is(err, db.ErrNotFound) {
 				m.coreHdl.GetNotFound(w, r)
 				return
 			}
@@ -48,14 +48,16 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 		}
 
 		identity := authz.Identity{
-			UserID:           userID,
-			OrganizationID:   am.OrganizationID,
-			OrganizationSlug: orgSlug,
-			Role:             am.Role,
-			Permissions:      am.Permissions,
+			ID:          authCtx.UserID,
+			Email:       authCtx.UserEmail,
+			FirstName:   am.FirstName,
+			LastName:    am.LastName,
+			OrgID:       am.OrgID,
+			OrgName:     am.OrgName,
+			OrgSlug:     orgSlug,
+			Role:        am.Role,
+			Permissions: am.Permissions,
 		}
-
-		identity.UserID = userID
 
 		ctx := tenant.WithIdentity(r.Context(), identity)
 		newR := r.WithContext(ctx)

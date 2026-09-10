@@ -9,24 +9,31 @@ import (
 
 type contextKey string
 
-const userIDContextKey contextKey = "userID"
+const (
+	userContextKey contextKey = "userContext"
+)
 
-func WithUserID(ctx context.Context, userID uuid.UUID) context.Context {
-	return context.WithValue(ctx, userIDContextKey, userID)
+type AuthContext struct {
+	UserID    uuid.UUID
+	UserEmail string
 }
 
-func UserIDFomContext(ctx context.Context) (uuid.UUID, error) {
-	value, ok := ctx.Value(userIDContextKey).(uuid.UUID)
+func WithAuthContext(ctx context.Context, u AuthContext) context.Context {
+	return context.WithValue(ctx, userContextKey, u)
+}
+
+func AuthFromContext(ctx context.Context) (AuthContext, error) {
+	value, ok := ctx.Value(userContextKey).(AuthContext)
 	if !ok {
-		return uuid.UUID{}, fmt.Errorf("user id not found in tontext")
+		return AuthContext{}, fmt.Errorf("user not found in context")
 	}
 	return value, nil
 }
 
-func MustUserIDFomContext(ctx context.Context) uuid.UUID {
-	value, ok := ctx.Value(userIDContextKey).(uuid.UUID)
+func MustAuthFromContext(ctx context.Context) AuthContext {
+	value, ok := ctx.Value(userContextKey).(AuthContext)
 	if !ok {
-		log.Panicf("required value from context: %s", userIDContextKey)
+		log.Panicf("required value from context: %s", userContextKey)
 	}
 	return value
 }

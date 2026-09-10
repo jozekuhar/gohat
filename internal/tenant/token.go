@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-func generateInviteToken() (string, string, error) {
+func generateInvitationToken() (string, string, error) {
 	b := make([]byte, 32)
 
 	_, err := rand.Read(b)
@@ -16,9 +16,13 @@ func generateInviteToken() (string, string, error) {
 		return "", "", fmt.Errorf("failde to generate random bytes: %w", err)
 	}
 
-	token := base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(b)
-	hash := sha256.Sum256([]byte(token))
-	tokenHash := hex.EncodeToString(hash[:])
+	rawToken := base64.URLEncoding.EncodeToString(b)
+	tokenHash := hashToken(rawToken)
 
-	return token, tokenHash, nil
+	return rawToken, tokenHash, nil
+}
+
+func hashToken(token string) string {
+	hashBytes := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hashBytes[:])
 }

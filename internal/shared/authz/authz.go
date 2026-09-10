@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"errors"
 	"slices"
 	"uuid"
 )
@@ -10,6 +11,8 @@ type Role string
 func (r Role) String() string {
 	return string(r)
 }
+
+var ErrPermissionDenied = errors.New("permission denied")
 
 const (
 	RoleOwner  Role = "owner"
@@ -28,12 +31,6 @@ const (
 	PermChannelCreate    Permission = "channel:create"
 	PermChannelUpdate    Permission = "channel:update"
 	PermChannelDelete    Permission = "channel:delete"
-
-	// TODO(jozekuhar): billing is future feature
-	PermBillingRead   Permission = "billing:read"
-	PermBillingCreate Permission = "billing:create"
-	PermBillingUpdate Permission = "billing:update"
-	PermBillingDelete Permission = "billing:write"
 )
 
 var rolePermissions = map[Role][]Permission{
@@ -48,11 +45,15 @@ var rolePermissions = map[Role][]Permission{
 }
 
 type Identity struct {
-	UserID           uuid.UUID
-	OrganizationID   uuid.UUID
-	OrganizationSlug string
-	Role             Role
-	Permissions      []Permission
+	ID          uuid.UUID
+	Email       string
+	FirstName   string
+	LastName    string
+	OrgID       uuid.UUID
+	OrgName     string
+	OrgSlug     string
+	Role        Role
+	Permissions []Permission
 }
 
 func (a *Identity) HasPermission(perm Permission) bool {

@@ -1,4 +1,4 @@
-package auth
+package model
 
 import (
 	"time"
@@ -10,6 +10,8 @@ type User struct {
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt *time.Time
+
+	Membership *Membership `db:"-"`
 }
 
 type AuthProvider string

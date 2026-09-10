@@ -8,7 +8,7 @@ import (
 	"mimokocke/internal/auth"
 	"mimokocke/internal/channel"
 	"mimokocke/internal/middleware"
-	"mimokocke/internal/provider/postgres"
+	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/logger"
@@ -37,9 +37,8 @@ func main() {
 	logger := logger.Init(cfg.Debug)
 
 	systemClock := clock.NewSystemClock()
-	_ = systemClock
 
-	pool, err := postgres.LoadPool(ctx, cfg.DatabaseURL)
+	pool, err := db.LoadPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Panicf("loading postgres: %s", err)
 	}
@@ -51,9 +50,11 @@ func main() {
 		log.Panicf("loading manifest: %s", err)
 	}
 
-	tenantRepo := tenant.NewRepository(pool)
-	authRepo := auth.NewRepository(pool)
-	channelRepo := channel.NewRepository(pool)
+	baseRepo := db.NewBaseRepo(pool)
+
+	tenantRepo := tenant.NewRepository(baseRepo)
+	authRepo := auth.NewRepository(baseRepo)
+	channelRepo := channel.NewRepository(baseRepo)
 
 	tenantSrv := tenant.NewService(cfg, logger, systemClock, resendClient, tenantRepo)
 	authSrv := auth.NewService(cfg, logger, systemClock, authRepo)
@@ -81,41 +82,66 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(chimiddleware.Logger)
+
+		r.Group(func(r chi.Router) {
+			// Core
+			r.Get(routes.TermsOfService, coreHdl.GetTermsOfService)
+			r.Get(routes.PrivacyPolicy, coreHdl.GetPrivacyPolicy)
+
+			// Auth
+			r.Get(routes.CallbackSignInGoogle, authHdl.GetSignInGoogleCallback)
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(authMdw.OptionalAuth)
+
+			// Invitations
+			r.Get(routes.InvitationsJoinPath, tenantHdl.GetShowInvitation)
+		})
+
 		r.Group(func(r chi.Router) {
 			r.Use(authMdw.RequireGuest)
+
 			r.Get(routes.Login, authHdl.GetLogin)
 			r.Post(routes.HXLogin, authHdl.PostLogin)
 			r.Get(routes.Register, authHdl.GetRegister)
 			r.Post(routes.HXRegister, authHdl.PostRegister)
 			r.Get(routes.HXSignInGoogle, authHdl.GetSignInWithGoogle)
 		})
+
 		r.Group(func(r chi.Router) {
 			r.Use(authMdw.RequireAuth)
-			r.Post(routes.HXLogout, authHdl.PostLogout)
 
+			r.Post(routes.HXLogout, authHdl.PostLogout)
 			r.Get(routes.Root, tenantHdl.GetOrganizations)
 
 			// Sidebar
 			r.Get(routes.HXSidebarOrganizations, tenantHdl.GetSidebarOrganizationsPartial)
-			r.Get(routes.HXSidebarOrganizationsCreate, tenantHdl.GetOrganizationsCreateForm)
+			r.Get(routes.HXSidebarOrganizationsCreate, tenantHdl.GetCreateOrganizationFormModal)
 			r.Post(routes.HXSidebarOrganizationsCreate, tenantHdl.PostCreateOrganization)
+
+			// Invitations
+			r.Post(routes.HXInvitationsAcceptPath, tenantHdl.PostAcceptInvitation)
+			r.Post(routes.HXInvitationsDeclinePath, tenantHdl.PostDeclineInvitation)
 
 			// Organization
 			r.Group(func(r chi.Router) {
 				r.Use(tenantMdw.RequireIdentity)
+				r.Get(routes.OrgRootPath, tenantHdl.GetRoot)
 				r.Get(routes.OrgDashboardPath, tenantHdl.GetDashboard)
+
+				// Memberships
 				r.Get(routes.OrgMembershipsPath, tenantHdl.GetMemberships)
+				r.Get(routes.HXOrgMembershipsUpdatePath, tenantHdl.GetUpdateMembershipFormModal)
+				r.Patch(routes.HXOrgMembershipsUpdatePath, tenantHdl.PatchUpdateMembership)
+				r.Get(routes.HXOrgInvitationsCreatePath, tenantHdl.GetCreateInvitationFormModal)
+				r.Post(routes.HXOrgInvitationsCreatePath, tenantHdl.PostCreateInvitation)
+
+				// Channels
+				r.Get(routes.OrgChannelsPath, channelHdl.GetChannels)
 			})
 		})
-
-		r.Group(func(r chi.Router) {
-			r.Get(routes.CallbackSignInGoogle, authHdl.GetSignInGoogleCallback)
-			r.Get(routes.TermsOfService, coreHdl.GetTermsOfService)
-			r.Get(routes.PrivacyPolicy, coreHdl.GetPrivacyPolicy)
-		})
 	})
-
-	_ = channelHdl
 
 	if err := http.ListenAndServe(cfg.Port, r); err != nil {
 		log.Panicf("running server on port: %s", cfg.Port)
