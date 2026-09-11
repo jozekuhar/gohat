@@ -8,7 +8,6 @@ import (
 	"time"
 	"uuid"
 
-	"mimokocke/internal/model"
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/clock"
@@ -55,12 +54,8 @@ func NewService(
 func (s *Service) ListActiveOrganizations(
 	ctx context.Context,
 	userID uuid.UUID,
-) ([]model.Organization, error) {
-	activeStatus := model.MembershipStatusActive
-	return s.tenantRepo.ListOrganizations(ctx, ListOrganizationsFilter{
-		UserID:           &userID,
-		MembershipStatus: &activeStatus,
-	})
+) ([]db.Organization, error) {
+	return s.tenantRepo.ListActiveOrganizations(ctx, userID)
 }
 
 func (s *Service) RegisterOrganization(
@@ -71,18 +66,14 @@ func (s *Service) RegisterOrganization(
 	firstName string,
 	lastName string,
 ) (db.Organization, error) {
-	activeStatus := model.MembershipStatusActive
-	activeMemberships, err := s.tenantRepo.ListOrganizations(ctx, ListOrganizationsFilter{
-		UserID:           &userID,
-		MembershipStatus: &activeStatus,
-	})
+	activeOrgs, err := s.tenantRepo.ListActiveOrganizations(ctx, userID)
 	if err != nil {
 		return db.Organization{}, fmt.Errorf(
 			"listing organization memberships for user: %w",
 			err,
 		)
 	}
-	if len(activeMemberships) > 0 {
+	if len(activeOrgs) > 0 {
 		return db.Organization{}, ErrOrganizationLimitReached
 	}
 
@@ -97,15 +88,15 @@ func (s *Service) RegisterOrganization(
 			return fmt.Errorf("creating organization: %w", err)
 		}
 
-		_, err = s.tenantRepo.CreateMembership(ctx, tx, CreateMembershipParams{
+		_, err = s.tenantRepo.CreateMembership(ctx, tx, db.CreateMembershipParams{
 			ID:             uuid.NewV7(),
 			OrganizationID: organization.ID,
 			UserID:         userID,
 			FirstName:      firstName,
 			LastName:       lastName,
-			Role:           authz.RoleOwner,
-			Permissions:    []authz.Permission{},
-			Status:         model.MembershipStatusActive,
+			Role:           db.RoleOwner,
+			Permissions:    []db.MembershipPermission{},
+			Status:         db.MemberStatusActive,
 		},
 		)
 		if err != nil {
@@ -123,18 +114,16 @@ func (s *Service) GetActiveMembership(
 	ctx context.Context,
 	userID uuid.UUID,
 	orgSlug string,
-) (activeMembership, error) {
-	return s.tenantRepo.GetActiveMemberhip(
-		ctx,
-		userID,
-		orgSlug,
-		model.MembershipStatusActive,
-	)
+) (db.GetActiveMembershipByUserIDRow, error) {
+	return s.tenantRepo.GetActiveMembershipByUserID(ctx, db.GetActiveMembershipByUserIDParams{
+		Slug:   orgSlug,
+		UserID: userID,
+	})
 }
 
 type MembershipsData struct {
-	Memberhips  []model.Membership
-	Invitations []model.Invitation
+	Memberhips  []db.ListMembershipsRow
+	Invitations []db.Invitation
 }
 
 // not good
@@ -142,7 +131,7 @@ func (s *Service) GetMembershipsData(
 	ctx context.Context,
 	identity authz.Identity,
 ) (MembershipsData, error) {
-	if !identity.HasPermission(authz.PermMembershipRead) {
+	if !identity.HasPermission(db.PermMembershipRead) {
 		return MembershipsData{}, authz.ErrPermissionDenied
 	}
 
@@ -152,7 +141,6 @@ func (s *Service) GetMembershipsData(
 	data.Memberhips, err = s.tenantRepo.ListMemberships(
 		ctx,
 		identity.OrgID,
-		ListMembershipsFilter{},
 	)
 	if err != nil {
 		return MembershipsData{}, err
@@ -164,19 +152,29 @@ func (s *Service) GetMembershipsData(
 }
 
 // not good
-func (s *Service) GetMembership(
+func (s *Service) GetMembershipDetails(
 	ctx context.Context,
-	orgID, membershipID uuid.UUID,
-) (model.Membership, error) {
-	fmt.Println(orgID, membershipID)
-	return s.tenantRepo.GetMembership(ctx, orgID, membershipID, GetMembershipFilter{})
+	identity authz.Identity,
+	membershipID uuid.UUID,
+) (db.GetMembershipRow, error) {
+	// todo: permissions
+	if identity.HasPermission(db.PermMembershipRead) {
+		return db.GetMembershipRow{}, authz.ErrPermissionDenied
+	}
+
+	return s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
+		OrganizationID: identity.OrgID,
+		MembershipID:   membershipID,
+	})
 }
 
 // not good: kaj za vraga ta service updetja?
-func (s *Service) UpdateMembership(ctx context.Context, m model.Membership) error {
-	return s.tenantRepo.UpdateMembership(ctx, nil, m.OrganizationID, m.ID, UpdateMembershipParams{
-		FirstName: &m.FirstName,
-		LastName:  &m.LastName,
+func (s *Service) UpdateMembership(ctx context.Context, m db.Membership) (db.Membership, error) {
+	return s.tenantRepo.UpdateMembership(ctx, nil, db.UpdateMembershipParams{
+		FirstName:      &m.FirstName,
+		LastName:       &m.LastName,
+		OrganizationID: m.OrganizationID,
+		MembershipID:   m.ID,
 	})
 }
 
@@ -186,18 +184,16 @@ func (s *Service) CancelMembership(
 	identity authz.Identity,
 	membershipID uuid.UUID,
 ) error {
-	membership, err := s.tenantRepo.GetMembership(
-		ctx,
-		identity.OrgID,
-		membershipID,
-		GetMembershipFilter{},
-	)
+	membership, err := s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
+		OrganizationID: identity.OrgID,
+		MembershipID:   membershipID,
+	})
 	if err != nil {
 		return err
 	}
 
-	isOwnMembership := membership.UserID == identity.ID
-	hasDeletePermission := identity.HasPermission(authz.PermMembershipDelete)
+	isOwnMembership := membership.Membership.UserID == identity.ID
+	hasDeletePermission := identity.HasPermission(db.PermMembershipDelete)
 
 	if !isOwnMembership && !hasDeletePermission {
 		return authz.ErrPermissionDenied
@@ -206,9 +202,11 @@ func (s *Service) CancelMembership(
 	return s.tenantRepo.UpdateMembershipCanceled(
 		ctx,
 		nil,
-		identity.OrgID,
-		membershipID,
-		identity.ID,
+		db.UpdateMembershipCanceledParams{
+			CanceledByID:   &identity.ID,
+			OrganizationID: identity.OrgID,
+			MembershipID:   membershipID,
+		},
 	)
 }
 
@@ -216,8 +214,8 @@ type InviteUserParams struct {
 	Email       string
 	FirstName   string
 	LastName    string
-	Role        authz.Role
-	Permissions []authz.Permission
+	Role        db.MembershipRole
+	Permissions []db.MembershipPermission
 }
 
 // InviteUser handles sending invitation to user to join organization.
@@ -225,46 +223,55 @@ func (s *Service) InviteUser(
 	ctx context.Context,
 	identity authz.Identity,
 	params InviteUserParams,
-) (model.Invitation, error) {
-	if !identity.HasPermission(authz.PermMembershipCreate) {
-		return model.Invitation{}, authz.ErrPermissionDenied
+) (db.Invitation, error) {
+	if !identity.HasPermission(db.PermMembershipCreate) {
+		return db.Invitation{}, authz.ErrPermissionDenied
 	}
 
-	isMember, err := s.tenantRepo.CheckUserIsMember(ctx, identity.OrgID, params.Email)
+	isMember, err := s.tenantRepo.CheckMembershipByEmail(ctx, db.CheckMembershipByEmailParams{
+		OrganizationID: identity.OrgID,
+		Email:          params.Email,
+	})
 	if err != nil {
-		return model.Invitation{}, fmt.Errorf("checking membership: %w", err)
+		return db.Invitation{}, fmt.Errorf("checking membership: %w", err)
 	}
 	if isMember {
-		return model.Invitation{}, ErrUserAlreadyMember
+		return db.Invitation{}, ErrUserAlreadyMember
 	}
 
-	latestInvitation, err := s.tenantRepo.GetLatestInvitation(ctx, identity.OrgID, params.Email)
+	latestInvitation, err := s.tenantRepo.GetLatestInvitationByEmail(
+		ctx,
+		db.GetLatestInvitationByEmailParams{
+			OrganizationID: identity.OrgID,
+			Email:          params.Email,
+		},
+	)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
-		return model.Invitation{}, fmt.Errorf("getting latest invitation: %w", err)
+		return db.Invitation{}, fmt.Errorf("getting latest invitation: %w", err)
 	}
 	if err == nil && latestInvitation.IsPending() {
-		return model.Invitation{}, ErrInvitationAlreadyPending
+		return db.Invitation{}, ErrInvitationAlreadyPending
 	}
 
 	rawToken, tokenHash, err := generateInvitationToken()
 	if err != nil {
-		return model.Invitation{}, err
+		return db.Invitation{}, err
 	}
 
-	invitation, err := s.tenantRepo.CreateInvitation(ctx, nil, CreateInvitationParams{
-		ID:          uuid.NewV7(),
-		OrgID:       identity.OrgID,
-		InviterID:   identity.ID,
-		Email:       params.Email,
-		FirstName:   params.FirstName,
-		LastName:    params.LastName,
-		Role:        params.Role,
-		Permissions: params.Permissions,
-		TokenHash:   tokenHash,
-		ExpiresAt:   s.clock.NowUTC().Add(24 * time.Hour),
+	invitation, err := s.tenantRepo.CreateInvitation(ctx, nil, db.CreateInvitationParams{
+		ID:             uuid.NewV7(),
+		OrganizationID: identity.OrgID,
+		InviterID:      identity.ID,
+		Email:          params.Email,
+		FirstName:      params.FirstName,
+		LastName:       params.LastName,
+		Role:           params.Role,
+		Permissions:    params.Permissions,
+		TokenHash:      tokenHash,
+		ExpiresAt:      s.clock.NowUTC().Add(24 * time.Hour),
 	})
 	if err != nil {
-		return model.Invitation{}, fmt.Errorf("creating invitation: %w", err)
+		return db.Invitation{}, fmt.Errorf("creating invitation: %w", err)
 	}
 
 	invitationURL := fmt.Sprintf(
@@ -293,24 +300,22 @@ func (s *Service) CancelInvite(
 	identity authz.Identity,
 	invitationID uuid.UUID,
 ) error {
-	if !identity.HasPermission(authz.PermMembershipDelete) {
+	if !identity.HasPermission(db.PermMembershipDelete) {
 		return authz.ErrPermissionDenied
 	}
 
-	return s.tenantRepo.UpdateInvitationCanceled(
-		ctx,
-		nil,
-		invitationID,
-		identity.OrgID,
-		identity.ID,
-	)
+	return s.tenantRepo.UpdateInvitationCanceled(ctx, nil, db.UpdateInvitationCanceledParams{
+		CanceledByID:   &identity.ID,
+		OrganizationID: identity.OrgID,
+		InvitationID:   invitationID,
+	})
 }
 
 // not good
 func (s *Service) GetInvitation(
 	ctx context.Context,
 	token string,
-) (model.Invitation, error) {
+) (db.GetInvitationByTokenHashRow, error) {
 	tokenHash := hashToken(token)
 	return s.tenantRepo.GetInvitationByTokenHash(ctx, tokenHash)
 }
@@ -328,29 +333,29 @@ func (s *Service) AcceptInvitation(
 		return err
 	}
 
-	if !invitation.IsPending() {
-		return ErrInvitationNotPending
-	}
+	// if !invitation.IsPending() {
+	// 	return ErrInvitationNotPending
+	// }
 
-	if userEmail != invitation.Email {
+	if userEmail != invitation.Invitation.Email {
 		return fmt.Errorf("user email not same as invitation email")
 	}
 
 	return pgx.BeginFunc(ctx, s.tenantRepo.Pool, func(tx pgx.Tx) error {
-		err = s.tenantRepo.UpdateInvitationAcceptedAt(ctx, tx, invitation.ID)
+		err = s.tenantRepo.UpdateInvitationAcceptedAt(ctx, tx, invitation.Invitation.ID)
 		if err != nil {
 			return err
 		}
 
-		_, err = s.tenantRepo.CreateMembership(ctx, tx, CreateMembershipParams{
+		_, err = s.tenantRepo.CreateMembership(ctx, tx, db.CreateMembershipParams{
 			ID:             uuid.NewV7(),
-			OrganizationID: invitation.OrganizationID,
+			OrganizationID: invitation.Organization.ID,
 			UserID:         userID,
-			FirstName:      invitation.FirstName,
-			LastName:       invitation.LastName,
-			Role:           invitation.Role,
-			Permissions:    invitation.Permissions,
-			Status:         model.MembershipStatusActive,
+			FirstName:      invitation.Invitation.FirstName,
+			LastName:       invitation.Invitation.LastName,
+			Role:           invitation.Invitation.Role,
+			Permissions:    invitation.Invitation.Permissions,
+			Status:         db.MemberStatusActive,
 		})
 		return err
 	})
@@ -365,13 +370,13 @@ func (s *Service) DeclineInvitation(ctx context.Context, userEmail, token string
 		return err
 	}
 
-	if !invitation.IsPending() {
+	if !invitation.Invitation.IsPending() {
 		return ErrInvitationNotPending
 	}
 
-	if userEmail != invitation.Email {
+	if userEmail != invitation.Invitation.Email {
 		return fmt.Errorf("user email not same as invitation email")
 	}
 
-	return s.tenantRepo.UpdateInvitationDeclinedAt(ctx, nil, invitation.ID)
+	return s.tenantRepo.UpdateInvitationDeclinedAt(ctx, nil, invitation.Invitation.ID)
 }

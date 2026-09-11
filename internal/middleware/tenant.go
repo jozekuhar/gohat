@@ -50,13 +50,13 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 		identity := authz.Identity{
 			ID:          authCtx.UserID,
 			Email:       authCtx.UserEmail,
-			FirstName:   am.FirstName,
-			LastName:    am.LastName,
-			OrgID:       am.OrgID,
-			OrgName:     am.OrgName,
+			FirstName:   am.Membership.FirstName,
+			LastName:    am.Membership.LastName,
+			OrgID:       am.Organization.ID,
+			OrgName:     am.Organization.Name,
 			OrgSlug:     orgSlug,
-			Role:        am.Role,
-			Permissions: am.Permissions,
+			Role:        am.Membership.Role,
+			Permissions: am.Membership.Permissions,
 		}
 
 		ctx := tenant.WithIdentity(r.Context(), identity)

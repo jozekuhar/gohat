@@ -7,9 +7,131 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"uuid"
 )
+
+const checkMembershipByEmail = `-- name: CheckMembershipByEmail :one
+SELECT EXISTS (
+    SELECT 1 
+    FROM memberships AS m
+    JOIN users AS u ON m.user_id = u.id 
+    WHERE m.organization_id = $1
+      AND u.email = $2
+)
+`
+
+type CheckMembershipByEmailParams struct {
+	OrganizationID uuid.UUID
+	Email          string
+}
+
+func (q *Queries) CheckMembershipByEmail(ctx context.Context, arg CheckMembershipByEmailParams) (bool, error) {
+	row := q.db.QueryRow(ctx, checkMembershipByEmail, arg.OrganizationID, arg.Email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const createInvitation = `-- name: CreateInvitation :one
+INSERT INTO invitations (id, organization_id, inviter_id, email, first_name, last_name, role, permissions, token_hash, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, organization_id, inviter_id, email, first_name, last_name, role, permissions, token_hash, expires_at, accepted_at, declined_at, canceled_at, canceled_by_id, created_at
+`
+
+type CreateInvitationParams struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	InviterID      uuid.UUID
+	Email          string
+	FirstName      string
+	LastName       string
+	Role           MembershipRole
+	Permissions    []MembershipPermission
+	TokenHash      string
+	ExpiresAt      time.Time
+}
+
+func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationParams) (Invitation, error) {
+	row := q.db.QueryRow(ctx, createInvitation,
+		arg.ID,
+		arg.OrganizationID,
+		arg.InviterID,
+		arg.Email,
+		arg.FirstName,
+		arg.LastName,
+		arg.Role,
+		arg.Permissions,
+		arg.TokenHash,
+		arg.ExpiresAt,
+	)
+	var i Invitation
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.InviterID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.Permissions,
+		&i.TokenHash,
+		&i.ExpiresAt,
+		&i.AcceptedAt,
+		&i.DeclinedAt,
+		&i.CanceledAt,
+		&i.CanceledByID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createMembership = `-- name: CreateMembership :one
+INSERT INTO memberships (id, organization_id, user_id, first_name, last_name, role, permissions, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, organization_id, user_id, first_name, last_name, role, permissions, status, canceled_at, canceled_by_id, created_at, updated_at
+`
+
+type CreateMembershipParams struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	UserID         uuid.UUID
+	FirstName      string
+	LastName       string
+	Role           MembershipRole
+	Permissions    []MembershipPermission
+	Status         MembershipStatus
+}
+
+func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) (Membership, error) {
+	row := q.db.QueryRow(ctx, createMembership,
+		arg.ID,
+		arg.OrganizationID,
+		arg.UserID,
+		arg.FirstName,
+		arg.LastName,
+		arg.Role,
+		arg.Permissions,
+		arg.Status,
+	)
+	var i Membership
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.UserID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.Permissions,
+		&i.Status,
+		&i.CanceledAt,
+		&i.CanceledByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const createOrganization = `-- name: CreateOrganization :one
 INSERT INTO organizations (id, name, slug)
@@ -34,6 +156,314 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getActiveMembershipByUserID = `-- name: GetActiveMembershipByUserID :one
+SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, m.id, m.organization_id, m.user_id, m.first_name, m.last_name, m.role, m.permissions, m.status, m.canceled_at, m.canceled_by_id, m.created_at, m.updated_at
+FROM organizations AS o
+JOIN memberships AS m ON o.id = m.organization_id
+WHERE o.slug = $1
+  AND m.user_id = $2
+  AND m.status = 'active'
+`
+
+type GetActiveMembershipByUserIDParams struct {
+	Slug   string
+	UserID uuid.UUID
+}
+
+type GetActiveMembershipByUserIDRow struct {
+	Organization Organization
+	Membership   Membership
+}
+
+func (q *Queries) GetActiveMembershipByUserID(ctx context.Context, arg GetActiveMembershipByUserIDParams) (GetActiveMembershipByUserIDRow, error) {
+	row := q.db.QueryRow(ctx, getActiveMembershipByUserID, arg.Slug, arg.UserID)
+	var i GetActiveMembershipByUserIDRow
+	err := row.Scan(
+		&i.Organization.ID,
+		&i.Organization.Name,
+		&i.Organization.Slug,
+		&i.Organization.CreatedAt,
+		&i.Organization.UpdatedAt,
+		&i.Membership.ID,
+		&i.Membership.OrganizationID,
+		&i.Membership.UserID,
+		&i.Membership.FirstName,
+		&i.Membership.LastName,
+		&i.Membership.Role,
+		&i.Membership.Permissions,
+		&i.Membership.Status,
+		&i.Membership.CanceledAt,
+		&i.Membership.CanceledByID,
+		&i.Membership.CreatedAt,
+		&i.Membership.UpdatedAt,
+	)
+	return i, err
+}
+
+const getInvitationByTokenHash = `-- name: GetInvitationByTokenHash :one
+SELECT i.id, i.organization_id, i.inviter_id, i.email, i.first_name, i.last_name, i.role, i.permissions, i.token_hash, i.expires_at, i.accepted_at, i.declined_at, i.canceled_at, i.canceled_by_id, i.created_at, o.id, o.name, o.slug, o.created_at, o.updated_at, u.id, u.email, u.created_at, u.updated_at, m.id, m.organization_id, m.user_id, m.first_name, m.last_name, m.role, m.permissions, m.status, m.canceled_at, m.canceled_by_id, m.created_at, m.updated_at
+FROM invitations AS i
+INNER JOIN organizations AS o ON i.organization_id = o.id
+INNER JOIN users AS u ON i.inviter_id = u.id
+INNER JOIN memberships AS m ON i.inviter_id = m.user_id AND i.organization_id = m.organization_id
+WHERE i.token_hash = $1
+`
+
+type GetInvitationByTokenHashRow struct {
+	Invitation   Invitation
+	Organization Organization
+	User         User
+	Membership   Membership
+}
+
+func (q *Queries) GetInvitationByTokenHash(ctx context.Context, tokenHash string) (GetInvitationByTokenHashRow, error) {
+	row := q.db.QueryRow(ctx, getInvitationByTokenHash, tokenHash)
+	var i GetInvitationByTokenHashRow
+	err := row.Scan(
+		&i.Invitation.ID,
+		&i.Invitation.OrganizationID,
+		&i.Invitation.InviterID,
+		&i.Invitation.Email,
+		&i.Invitation.FirstName,
+		&i.Invitation.LastName,
+		&i.Invitation.Role,
+		&i.Invitation.Permissions,
+		&i.Invitation.TokenHash,
+		&i.Invitation.ExpiresAt,
+		&i.Invitation.AcceptedAt,
+		&i.Invitation.DeclinedAt,
+		&i.Invitation.CanceledAt,
+		&i.Invitation.CanceledByID,
+		&i.Invitation.CreatedAt,
+		&i.Organization.ID,
+		&i.Organization.Name,
+		&i.Organization.Slug,
+		&i.Organization.CreatedAt,
+		&i.Organization.UpdatedAt,
+		&i.User.ID,
+		&i.User.Email,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.Membership.ID,
+		&i.Membership.OrganizationID,
+		&i.Membership.UserID,
+		&i.Membership.FirstName,
+		&i.Membership.LastName,
+		&i.Membership.Role,
+		&i.Membership.Permissions,
+		&i.Membership.Status,
+		&i.Membership.CanceledAt,
+		&i.Membership.CanceledByID,
+		&i.Membership.CreatedAt,
+		&i.Membership.UpdatedAt,
+	)
+	return i, err
+}
+
+const getLatestInvitationByEmail = `-- name: GetLatestInvitationByEmail :one
+SELECT id, organization_id, inviter_id, email, first_name, last_name, role, permissions, token_hash, expires_at, accepted_at, declined_at, canceled_at, canceled_by_id, created_at
+FROM invitations
+WHERE organization_id = $1
+  AND email = $2
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetLatestInvitationByEmailParams struct {
+	OrganizationID uuid.UUID
+	Email          string
+}
+
+func (q *Queries) GetLatestInvitationByEmail(ctx context.Context, arg GetLatestInvitationByEmailParams) (Invitation, error) {
+	row := q.db.QueryRow(ctx, getLatestInvitationByEmail, arg.OrganizationID, arg.Email)
+	var i Invitation
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.InviterID,
+		&i.Email,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.Permissions,
+		&i.TokenHash,
+		&i.ExpiresAt,
+		&i.AcceptedAt,
+		&i.DeclinedAt,
+		&i.CanceledAt,
+		&i.CanceledByID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getMembership = `-- name: GetMembership :one
+SELECT m.id, m.organization_id, m.user_id, m.first_name, m.last_name, m.role, m.permissions, m.status, m.canceled_at, m.canceled_by_id, m.created_at, m.updated_at, u.id, u.email, u.created_at, u.updated_at
+FROM memberships AS m
+JOIN users AS u ON m.user_id = u.id
+WHERE m.organization_id = $1
+  AND m.id = $2
+`
+
+type GetMembershipParams struct {
+	OrganizationID uuid.UUID
+	MembershipID   uuid.UUID
+}
+
+type GetMembershipRow struct {
+	Membership Membership
+	User       User
+}
+
+func (q *Queries) GetMembership(ctx context.Context, arg GetMembershipParams) (GetMembershipRow, error) {
+	row := q.db.QueryRow(ctx, getMembership, arg.OrganizationID, arg.MembershipID)
+	var i GetMembershipRow
+	err := row.Scan(
+		&i.Membership.ID,
+		&i.Membership.OrganizationID,
+		&i.Membership.UserID,
+		&i.Membership.FirstName,
+		&i.Membership.LastName,
+		&i.Membership.Role,
+		&i.Membership.Permissions,
+		&i.Membership.Status,
+		&i.Membership.CanceledAt,
+		&i.Membership.CanceledByID,
+		&i.Membership.CreatedAt,
+		&i.Membership.UpdatedAt,
+		&i.User.ID,
+		&i.User.Email,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+	)
+	return i, err
+}
+
+const listActiveOrganizations = `-- name: ListActiveOrganizations :many
+SELECT o.id, o.name, o.slug, o.created_at, o.updated_at
+FROM organizations AS o
+INNER JOIN memberships AS m ON o.id = m.organization_id
+WHERE m.user_id = $1
+  AND m.status = 'active'
+`
+
+func (q *Queries) ListActiveOrganizations(ctx context.Context, userID uuid.UUID) ([]Organization, error) {
+	rows, err := q.db.Query(ctx, listActiveOrganizations, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Organization
+	for rows.Next() {
+		var i Organization
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInvitations = `-- name: ListInvitations :many
+SELECT id, organization_id, inviter_id, email, first_name, last_name, role, permissions, token_hash, expires_at, accepted_at, declined_at, canceled_at, canceled_by_id, created_at
+FROM invitations
+WHERE organization_id = $1
+`
+
+func (q *Queries) ListInvitations(ctx context.Context, organizationID uuid.UUID) ([]Invitation, error) {
+	rows, err := q.db.Query(ctx, listInvitations, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Invitation
+	for rows.Next() {
+		var i Invitation
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrganizationID,
+			&i.InviterID,
+			&i.Email,
+			&i.FirstName,
+			&i.LastName,
+			&i.Role,
+			&i.Permissions,
+			&i.TokenHash,
+			&i.ExpiresAt,
+			&i.AcceptedAt,
+			&i.DeclinedAt,
+			&i.CanceledAt,
+			&i.CanceledByID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMemberships = `-- name: ListMemberships :many
+SELECT m.id, m.organization_id, m.user_id, m.first_name, m.last_name, m.role, m.permissions, m.status, m.canceled_at, m.canceled_by_id, m.created_at, m.updated_at, u.id, u.email, u.created_at, u.updated_at
+FROM memberships AS m
+JOIN users AS u ON m.user_id = u.id
+WHERE m.organization_id = $1
+`
+
+type ListMembershipsRow struct {
+	Membership Membership
+	User       User
+}
+
+func (q *Queries) ListMemberships(ctx context.Context, organizationID uuid.UUID) ([]ListMembershipsRow, error) {
+	rows, err := q.db.Query(ctx, listMemberships, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMembershipsRow
+	for rows.Next() {
+		var i ListMembershipsRow
+		if err := rows.Scan(
+			&i.Membership.ID,
+			&i.Membership.OrganizationID,
+			&i.Membership.UserID,
+			&i.Membership.FirstName,
+			&i.Membership.LastName,
+			&i.Membership.Role,
+			&i.Membership.Permissions,
+			&i.Membership.Status,
+			&i.Membership.CanceledAt,
+			&i.Membership.CanceledByID,
+			&i.Membership.CreatedAt,
+			&i.Membership.UpdatedAt,
+			&i.User.ID,
+			&i.User.Email,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUsers = `-- name: ListUsers :many
@@ -63,4 +493,118 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateInvitationAcceptedAt = `-- name: UpdateInvitationAcceptedAt :exec
+UPDATE invitations
+SET accepted_at = NOW()
+WHERE id = $1
+  AND accepted_at IS NULL
+  AND declined_at IS NULL
+  AND canceled_at IS NULL
+`
+
+func (q *Queries) UpdateInvitationAcceptedAt(ctx context.Context, invitationID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, updateInvitationAcceptedAt, invitationID)
+	return err
+}
+
+const updateInvitationCanceled = `-- name: UpdateInvitationCanceled :exec
+UPDATE invitations
+SET canceled_at = NOW(),
+    canceled_by_id = $1
+WHERE organization_id = $2
+  AND id = $3
+  AND accepted_at IS NULL
+  AND declined_at IS NULL
+  AND canceled_at IS NULL
+`
+
+type UpdateInvitationCanceledParams struct {
+	CanceledByID   *uuid.UUID
+	OrganizationID uuid.UUID
+	InvitationID   uuid.UUID
+}
+
+func (q *Queries) UpdateInvitationCanceled(ctx context.Context, arg UpdateInvitationCanceledParams) error {
+	_, err := q.db.Exec(ctx, updateInvitationCanceled, arg.CanceledByID, arg.OrganizationID, arg.InvitationID)
+	return err
+}
+
+const updateInvitationDeclinedAt = `-- name: UpdateInvitationDeclinedAt :exec
+UPDATE invitations
+SET declined_at = NOW()
+WHERE id = $1
+  AND accepted_at IS NULL
+  AND declined_at IS NULL
+  AND canceled_at IS NULL
+`
+
+func (q *Queries) UpdateInvitationDeclinedAt(ctx context.Context, invitationID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, updateInvitationDeclinedAt, invitationID)
+	return err
+}
+
+const updateMembership = `-- name: UpdateMembership :one
+UPDATE memberships
+SET 
+    first_name = COALESCE($1, first_name),
+    last_name = COALESCE($2, last_name),
+    updated_at = NOW()
+WHERE organization_id = $3
+  AND id = $4
+RETURNING id, organization_id, user_id, first_name, last_name, role, permissions, status, canceled_at, canceled_by_id, created_at, updated_at
+`
+
+type UpdateMembershipParams struct {
+	FirstName      *string
+	LastName       *string
+	OrganizationID uuid.UUID
+	MembershipID   uuid.UUID
+}
+
+func (q *Queries) UpdateMembership(ctx context.Context, arg UpdateMembershipParams) (Membership, error) {
+	row := q.db.QueryRow(ctx, updateMembership,
+		arg.FirstName,
+		arg.LastName,
+		arg.OrganizationID,
+		arg.MembershipID,
+	)
+	var i Membership
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.UserID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Role,
+		&i.Permissions,
+		&i.Status,
+		&i.CanceledAt,
+		&i.CanceledByID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateMembershipCanceled = `-- name: UpdateMembershipCanceled :exec
+UPDATE memberships
+SET status = 'canceled',
+    canceled_at = NOW(),
+    canceled_by_id = $1
+WHERE organization_id = $2
+  AND id = $3
+  AND status = 'active'
+`
+
+type UpdateMembershipCanceledParams struct {
+	CanceledByID   *uuid.UUID
+	OrganizationID uuid.UUID
+	MembershipID   uuid.UUID
+}
+
+func (q *Queries) UpdateMembershipCanceled(ctx context.Context, arg UpdateMembershipCanceledParams) error {
+	_, err := q.db.Exec(ctx, updateMembershipCanceled, arg.CanceledByID, arg.OrganizationID, arg.MembershipID)
+	return err
 }

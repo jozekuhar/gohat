@@ -11,7 +11,7 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt *time.Time
 
-	Membership *Membership `db:"-"`
+	// Membership *Membership `db:"-"`
 }
 
 type AuthProvider string

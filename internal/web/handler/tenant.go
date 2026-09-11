@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"mimokocke/internal/auth"
-	"mimokocke/internal/model"
+	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
@@ -169,8 +169,7 @@ func (h *tenantHandler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *h
 		return
 	}
 
-	// fetch membership and pass data to update form modal
-	membership, err := h.tenantSrv.GetMembership(r.Context(), identity.OrgID, membershipID)
+	membership, err := h.tenantSrv.GetMembershipDetails(r.Context(), identity, membershipID)
 	if err != nil {
 		h.logger.Error("getting membership", "err", err)
 		render(w, h.toastView.Fragment("Something went wrong"), http.StatusBadRequest)
@@ -209,7 +208,7 @@ func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = h.tenantSrv.UpdateMembership(r.Context(), model.Membership{
+	_, err = h.tenantSrv.UpdateMembership(r.Context(), db.Membership{
 		ID:             membershipID,
 		OrganizationID: identity.OrgID,
 		FirstName:      form.FirstName,
@@ -262,8 +261,8 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 		Email       string
 		FirstName   string
 		LastName    string
-		Role        authz.Role
-		Permissions []authz.Permission
+		Role        db.MembershipRole
+		Permissions []db.MembershipPermission
 	}
 
 	err = h.formDecoder.Decode(&form, r.Form)

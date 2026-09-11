@@ -1,0 +1,9 @@
+[sqlfluff]
+exclude_rules = L029, RF04, AM04, ST06, LT05, L016
+dialect = postgres
+templater = placeholder
+max_line_length = 0
+exclude_rules = layout
+
+[sqlfluff:templater:placeholder]
+param_regex = @[a-zA-Z0-9_]+

@@ -4,44 +4,21 @@ import (
 	"errors"
 	"slices"
 	"uuid"
+
+	"mimokocke/internal/provider/db"
 )
-
-type Role string
-
-func (r Role) String() string {
-	return string(r)
-}
 
 var ErrPermissionDenied = errors.New("permission denied")
 
-const (
-	RoleOwner  Role = "owner"
-	RoleAdmin  Role = "admin"
-	RoleMember Role = "member"
-)
-
-type Permission string
-
-const (
-	PermMembershipRead   Permission = "membership:read"
-	PermMembershipCreate Permission = "membership:create"
-	PermMembershipUpdate Permission = "membership:update"
-	PermMembershipDelete Permission = "membership:delete"
-	PermChannelRead      Permission = "channel:read"
-	PermChannelCreate    Permission = "channel:create"
-	PermChannelUpdate    Permission = "channel:update"
-	PermChannelDelete    Permission = "channel:delete"
-)
-
-var rolePermissions = map[Role][]Permission{
-	RoleOwner: {},
-	RoleAdmin: {
-		PermMembershipRead,
-		PermMembershipCreate,
-		PermMembershipUpdate,
-		PermMembershipDelete,
+var rolePermissions = map[db.MembershipRole][]db.MembershipPermission{
+	db.RoleOwner: {},
+	db.RoleAdmin: {
+		db.PermMembershipRead,
+		db.PermMembershipCreate,
+		db.PermMembershipUpdate,
+		db.PermMembershipDelete,
 	},
-	RoleMember: {},
+	db.RoleMember: {},
 }
 
 type Identity struct {
@@ -52,16 +29,16 @@ type Identity struct {
 	OrgID       uuid.UUID
 	OrgName     string
 	OrgSlug     string
-	Role        Role
-	Permissions []Permission
+	Role        db.MembershipRole
+	Permissions []db.MembershipPermission
 }
 
-func (a *Identity) HasPermission(perm Permission) bool {
-	if a.Role == RoleOwner {
+func (a *Identity) HasPermission(perm db.MembershipPermission) bool {
+	if a.Role == db.RoleOwner {
 		return true
 	}
 
-	if a.Role == RoleAdmin && slices.Contains(rolePermissions[RoleAdmin], perm) {
+	if a.Role == db.RoleAdmin && slices.Contains(rolePermissions[db.RoleAdmin], perm) {
 		return true
 	}
 

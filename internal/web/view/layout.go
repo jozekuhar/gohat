@@ -3,7 +3,7 @@ package view
 import (
 	"fmt"
 
-	"mimokocke/internal/model"
+	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 
@@ -251,7 +251,7 @@ func (v *Layout) sidebarHeaderPopover() g.Node {
 }
 
 func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
-	organizations []model.Organization,
+	organizations []db.Organization,
 ) g.Node {
 	return g.El(
 		"hx-partial",
@@ -259,7 +259,7 @@ func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
 		hx.Swap("outerHTML"),
 		h.Div(
 			h.ID(idSidebarPopoverItems),
-			g.Map(organizations, func(organization model.Organization) g.Node {
+			g.Map(organizations, func(organization db.Organization) g.Node {
 				return h.A(
 					hx.Boost("true"),
 					c.Classes{

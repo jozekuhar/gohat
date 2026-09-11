@@ -5,7 +5,8 @@
 package db
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
+
 	"uuid"
 )
 
@@ -13,10 +14,10 @@ type Authentication struct {
 	ID           uuid.UUID
 	UserID       uuid.UUID
 	Provider     string
-	ProviderID   pgtype.Text
-	PasswordHash pgtype.Text
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	ProviderID   *string
+	PasswordHash *string
+	CreatedAt    time.Time
+	UpdatedAt    *time.Time
 }
 
 type Invitation struct {
@@ -26,15 +27,15 @@ type Invitation struct {
 	Email          string
 	FirstName      string
 	LastName       string
-	Role           string
-	Permissions    []string
+	Role           MembershipRole
+	Permissions    []MembershipPermission
 	TokenHash      string
-	ExpiresAt      pgtype.Timestamptz
-	AcceptedAt     pgtype.Timestamptz
-	DeclinedAt     pgtype.Timestamptz
-	CanceledAt     pgtype.Timestamptz
-	CanceledByID   pgtype.UUID
-	CreatedAt      pgtype.Timestamptz
+	ExpiresAt      time.Time
+	AcceptedAt     *time.Time
+	DeclinedAt     *time.Time
+	CanceledAt     *time.Time
+	CanceledByID   *uuid.UUID
+	CreatedAt      time.Time
 }
 
 type Membership struct {
@@ -43,33 +44,33 @@ type Membership struct {
 	UserID         uuid.UUID
 	FirstName      string
 	LastName       string
-	Role           string
-	Permissions    []string
-	Status         string
-	CanceledAt     pgtype.Timestamptz
-	CanceledByID   pgtype.UUID
-	CreatedAt      pgtype.Timestamptz
-	UpdatedAt      pgtype.Timestamptz
+	Role           MembershipRole
+	Permissions    []MembershipPermission
+	Status         MembershipStatus
+	CanceledAt     *time.Time
+	CanceledByID   *uuid.UUID
+	CreatedAt      time.Time
+	UpdatedAt      *time.Time
 }
 
 type Organization struct {
 	ID        uuid.UUID
 	Name      string
 	Slug      string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	CreatedAt time.Time
+	UpdatedAt *time.Time
 }
 
 type Session struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
-	ExpiresAt pgtype.Timestamptz
-	CreatedAt pgtype.Timestamptz
+	ExpiresAt time.Time
+	CreatedAt time.Time
 }
 
 type User struct {
 	ID        uuid.UUID
 	Email     string
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	CreatedAt time.Time
+	UpdatedAt *time.Time
 }

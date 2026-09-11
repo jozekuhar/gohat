@@ -5,7 +5,7 @@ import (
 	"time"
 	"uuid"
 
-	"mimokocke/internal/model"
+	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
@@ -139,7 +139,7 @@ func (v *Memberships) MembershipsPage(
 							),
 						),
 						h.Div(
-							g.Map(data.Invitations, func(invite model.Invitation) g.Node {
+							g.Map(data.Invitations, func(invite db.Invitation) g.Node {
 								return v.membershipItem(
 									identity.OrgSlug,
 									uuid.UUID{},
@@ -151,16 +151,16 @@ func (v *Memberships) MembershipsPage(
 									invite.CreatedAt,
 								)
 							}),
-							g.Map(data.Memberhips, func(m model.Membership) g.Node {
+							g.Map(data.Memberhips, func(m db.ListMembershipsRow) g.Node {
 								return v.membershipItem(
 									identity.OrgSlug,
-									m.ID,
-									m.FirstName,
-									m.LastName,
+									m.Membership.ID,
+									m.Membership.FirstName,
+									m.Membership.LastName,
 									m.User.Email,
-									m.Status.String(),
-									m.Role.String(),
-									m.CreatedAt,
+									m.Membership.Status.String(),
+									m.Membership.Role.String(),
+									m.Membership.CreatedAt,
 								)
 							}),
 						),
@@ -272,7 +272,7 @@ func (v *Memberships) membershipItem(
 
 func (v *Memberships) MembershipUpdateFormModal(
 	identity authz.Identity,
-	membership model.Membership,
+	membership db.GetMembershipRow,
 ) g.Node {
 	return v.layout.modal.fragment(
 		h.Div(
@@ -287,7 +287,13 @@ func (v *Memberships) MembershipUpdateFormModal(
 			),
 		),
 		h.Form(
-			hx.Patch(fmt.Sprintf(routes.HXOrgMembershipsUpdate, identity.OrgSlug, membership.ID)),
+			hx.Patch(
+				fmt.Sprintf(
+					routes.HXOrgMembershipsUpdate,
+					identity.OrgSlug,
+					membership.Membership.ID,
+				),
+			),
 			hx.Swap("none"),
 			h.Class("space-y-4"),
 			h.Div(
@@ -305,7 +311,7 @@ func (v *Memberships) MembershipUpdateFormModal(
 					h.AutoFocus(),
 					h.Placeholder("John"),
 					h.AutoComplete("off"),
-					h.Value(membership.FirstName),
+					h.Value(membership.Membership.FirstName),
 					h.Name("FirstName"),
 				),
 			),
@@ -324,7 +330,7 @@ func (v *Memberships) MembershipUpdateFormModal(
 					),
 					h.Placeholder("Doe"),
 					h.AutoComplete("off"),
-					h.Value(membership.LastName),
+					h.Value(membership.Membership.LastName),
 					h.Name("LastName"),
 				),
 			),
@@ -563,7 +569,10 @@ func (v *Memberships) InvitationCreateFormModal(identity authz.Identity) g.Node 
 	)
 }
 
-func (v *Memberships) InvitationRegisterPage(token string, invitation model.Invitation) g.Node {
+func (v *Memberships) InvitationRegisterPage(
+	token string,
+	invitation db.GetInvitationByTokenHashRow,
+) g.Node {
 	return v.layout.blank(
 		h.Div(
 			h.Class("h-svh"),
@@ -581,12 +590,13 @@ func (v *Memberships) InvitationRegisterPage(token string, invitation model.Invi
 					h.Class("text-muted-foreground text-center"),
 					g.Textf(
 						"Hi %s %s, you have been invided to <br> organization %s (@%s) by %s with email %s",
-						invitation.FirstName,
-						invitation.LastName,
+						invitation.Invitation.FirstName,
+						invitation.Invitation.LastName,
 						invitation.Organization.Name,
 						invitation.Organization.Slug,
-						invitation.Inviter.Email,
-						invitation.Email,
+						"inviter email?",
+						// invitation.Inviter.Email,
+						invitation.Invitation.Email,
 					),
 					g.Text("Please log in with the appropriate credentials"),
 					h.Br(),
@@ -614,7 +624,10 @@ func (v *Memberships) InvitationRegisterPage(token string, invitation model.Invi
 	)
 }
 
-func (v *Memberships) InvitationAcceptPage(token string, invitation model.Invitation) g.Node {
+func (v *Memberships) InvitationAcceptPage(
+	token string,
+	invitation db.GetInvitationByTokenHashRow,
+) g.Node {
 	return v.layout.blank(
 		h.Div(
 			h.Class("h-svh"),
@@ -632,12 +645,12 @@ func (v *Memberships) InvitationAcceptPage(token string, invitation model.Invita
 					h.Class("text-muted-foreground text-center"),
 					g.Textf(
 						"Hi %s %s, you have been invided to <br> organization %s (@%s) by %s with email %s",
-						invitation.FirstName,
-						invitation.LastName,
+						invitation.Invitation.FirstName,
+						invitation.Invitation.LastName,
 						invitation.Organization.Name,
 						invitation.Organization.Slug,
-						invitation.Inviter.Email,
-						invitation.Email,
+						"inviter email",
+						invitation.Invitation.Email,
 					),
 					g.Text("Please log in with the appropriate credentials"),
 					h.Br(),
