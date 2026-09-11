@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	ErrOrganizationLimitReached = errors.New("user has reached maximum organizasion limit")
+	ErrOrganizationLimitReached = errors.New("user has reached maximum organization limit")
 	ErrInvitationNotPending     = errors.New("invitation is not pending")
 	ErrInvitationAlreadyPending = errors.New("invitation is already pending")
 	ErrUserAlreadyMember        = errors.New("user already member of organization")
@@ -78,7 +78,7 @@ func (s *Service) RegisterOrganization(
 	}
 
 	var organization db.Organization
-	err = pgx.BeginFunc(ctx, s.tenantRepo.Pool, func(tx pgx.Tx) error {
+	err = pgx.BeginFunc(ctx, s.tenantRepo.Pool(), func(tx pgx.Tx) error {
 		organization, err = s.tenantRepo.CreateOrganization(ctx, tx, db.CreateOrganizationParams{
 			ID:   uuid.NewV7(),
 			Name: orgName,
@@ -109,7 +109,6 @@ func (s *Service) RegisterOrganization(
 	return organization, err
 }
 
-// not good
 func (s *Service) GetActiveMembership(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -121,21 +120,20 @@ func (s *Service) GetActiveMembership(
 	})
 }
 
-type MembershipsData struct {
+type MembershipsOverview struct {
 	Memberhips  []db.ListMembershipsRow
 	Invitations []db.Invitation
 }
 
-// not good
-func (s *Service) GetMembershipsData(
+func (s *Service) GetMembershipsOverview(
 	ctx context.Context,
 	identity authz.Identity,
-) (MembershipsData, error) {
+) (MembershipsOverview, error) {
 	if !identity.HasPermission(db.PermMembershipRead) {
-		return MembershipsData{}, authz.ErrPermissionDenied
+		return MembershipsOverview{}, authz.ErrPermissionDenied
 	}
 
-	var data MembershipsData
+	var data MembershipsOverview
 	var err error
 
 	data.Memberhips, err = s.tenantRepo.ListMemberships(
@@ -143,7 +141,7 @@ func (s *Service) GetMembershipsData(
 		identity.OrgID,
 	)
 	if err != nil {
-		return MembershipsData{}, err
+		return MembershipsOverview{}, err
 	}
 
 	data.Invitations, err = s.tenantRepo.ListInvitations(ctx, identity.OrgID)
@@ -151,14 +149,12 @@ func (s *Service) GetMembershipsData(
 	return data, err
 }
 
-// not good
 func (s *Service) GetMembershipDetails(
 	ctx context.Context,
 	identity authz.Identity,
 	membershipID uuid.UUID,
 ) (db.GetMembershipRow, error) {
-	// todo: permissions
-	if identity.HasPermission(db.PermMembershipRead) {
+	if !identity.HasPermission(db.PermMembershipRead) {
 		return db.GetMembershipRow{}, authz.ErrPermissionDenied
 	}
 
@@ -311,7 +307,7 @@ func (s *Service) CancelInvite(
 	})
 }
 
-// not good
+// GetInvitation retrieves invitation.
 func (s *Service) GetInvitation(
 	ctx context.Context,
 	token string,
@@ -341,7 +337,7 @@ func (s *Service) AcceptInvitation(
 		return fmt.Errorf("user email not same as invitation email")
 	}
 
-	return pgx.BeginFunc(ctx, s.tenantRepo.Pool, func(tx pgx.Tx) error {
+	return pgx.BeginFunc(ctx, s.tenantRepo.Pool(), func(tx pgx.Tx) error {
 		err = s.tenantRepo.UpdateInvitationAcceptedAt(ctx, tx, invitation.Invitation.ID)
 		if err != nil {
 			return err

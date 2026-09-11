@@ -36,8 +36,7 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 		authCtx := auth.MustAuthFromContext(r.Context())
 		orgSlug := r.PathValue(routes.PathOrganizationSlug)
 
-		// TODO(jozekuhar): change to identity, so i just go for membership
-		am, err := m.tenantSrv.GetActiveMembership(r.Context(), authCtx.UserID, orgSlug)
+		membership, err := m.tenantSrv.GetActiveMembership(r.Context(), authCtx.UserID, orgSlug)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
 				m.coreHdl.GetNotFound(w, r)
@@ -49,14 +48,14 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 
 		identity := authz.Identity{
 			ID:          authCtx.UserID,
-			Email:       authCtx.UserEmail,
-			FirstName:   am.Membership.FirstName,
-			LastName:    am.Membership.LastName,
-			OrgID:       am.Organization.ID,
-			OrgName:     am.Organization.Name,
+			Email:       membership.User.Email,
+			FirstName:   membership.Membership.FirstName,
+			LastName:    membership.Membership.LastName,
+			OrgID:       membership.Organization.ID,
+			OrgName:     membership.Organization.Name,
 			OrgSlug:     orgSlug,
-			Role:        am.Membership.Role,
-			Permissions: am.Membership.Permissions,
+			Role:        membership.Membership.Role,
+			Permissions: membership.Membership.Permissions,
 		}
 
 		ctx := tenant.WithIdentity(r.Context(), identity)

@@ -33,9 +33,10 @@ WHERE m.organization_id = @organization_id
 
 
 -- name: GetActiveMembershipByUserID :one
-SELECT sqlc.embed(o), sqlc.embed(m)
+SELECT sqlc.embed(o), sqlc.embed(m), sqlc.embed(u)
 FROM organizations AS o
-JOIN memberships AS m ON o.id = m.organization_id
+INNER JOIN memberships AS m ON o.id = m.organization_id
+INNER JOIN users AS u ON m.user_id = u.id
 WHERE o.slug = @slug
   AND m.user_id = @user_id
   AND m.status = 'active';

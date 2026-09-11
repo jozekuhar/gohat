@@ -148,7 +148,7 @@ func (h *tenantHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 func (h *tenantHandler) GetMemberships(w http.ResponseWriter, r *http.Request) {
 	identity := tenant.MustIdentityFromContext(r.Context())
 
-	data, err := h.tenantSrv.GetMembershipsData(r.Context(), identity)
+	data, err := h.tenantSrv.GetMembershipsOverview(r.Context(), identity)
 	if err != nil {
 		h.logger.Error("getting memberships data", "err", err)
 		return

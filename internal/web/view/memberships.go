@@ -27,7 +27,7 @@ func NewMemberships() *Memberships {
 
 func (v *Memberships) MembershipsPage(
 	identity authz.Identity,
-	data tenant.MembershipsData,
+	data tenant.MembershipsOverview,
 ) g.Node {
 	return v.layout.app(
 		identity,

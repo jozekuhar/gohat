@@ -34,6 +34,41 @@ func (q *Queries) CheckMembershipByEmail(ctx context.Context, arg CheckMembershi
 	return exists, err
 }
 
+const createAuthentication = `-- name: CreateAuthentication :one
+INSERT INTO authentications (id, user_id, provider, provider_id, password_hash)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, provider, provider_id, password_hash, created_at, updated_at
+`
+
+type CreateAuthenticationParams struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	Provider     string
+	ProviderID   *string
+	PasswordHash *string
+}
+
+func (q *Queries) CreateAuthentication(ctx context.Context, arg CreateAuthenticationParams) (Authentication, error) {
+	row := q.db.QueryRow(ctx, createAuthentication,
+		arg.ID,
+		arg.UserID,
+		arg.Provider,
+		arg.ProviderID,
+		arg.PasswordHash,
+	)
+	var i Authentication
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderID,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createInvitation = `-- name: CreateInvitation :one
 INSERT INTO invitations (id, organization_id, inviter_id, email, first_name, last_name, role, permissions, token_hash, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -158,10 +193,68 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 	return i, err
 }
 
+const createSession = `-- name: CreateSession :one
+INSERT INTO sessions (id, user_id, expires_at)
+VALUES ($1, $2, $3)
+RETURNING id, user_id, expires_at, created_at
+`
+
+type CreateSessionParams struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, createSession, arg.ID, arg.UserID, arg.ExpiresAt)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (id, email)
+VALUES ($1, $2)
+RETURNING id, email, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	ID    uuid.UUID
+	Email string
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.ID, arg.Email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM sessions
+WHERE id = $1
+`
+
+func (q *Queries) DeleteSession(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSession, sessionID)
+	return err
+}
+
 const getActiveMembershipByUserID = `-- name: GetActiveMembershipByUserID :one
-SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, m.id, m.organization_id, m.user_id, m.first_name, m.last_name, m.role, m.permissions, m.status, m.canceled_at, m.canceled_by_id, m.created_at, m.updated_at
+SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, m.id, m.organization_id, m.user_id, m.first_name, m.last_name, m.role, m.permissions, m.status, m.canceled_at, m.canceled_by_id, m.created_at, m.updated_at, u.id, u.email, u.created_at, u.updated_at
 FROM organizations AS o
-JOIN memberships AS m ON o.id = m.organization_id
+INNER JOIN memberships AS m ON o.id = m.organization_id
+INNER JOIN users AS u ON m.user_id = u.id
 WHERE o.slug = $1
   AND m.user_id = $2
   AND m.status = 'active'
@@ -175,6 +268,7 @@ type GetActiveMembershipByUserIDParams struct {
 type GetActiveMembershipByUserIDRow struct {
 	Organization Organization
 	Membership   Membership
+	User         User
 }
 
 func (q *Queries) GetActiveMembershipByUserID(ctx context.Context, arg GetActiveMembershipByUserIDParams) (GetActiveMembershipByUserIDRow, error) {
@@ -198,6 +292,65 @@ func (q *Queries) GetActiveMembershipByUserID(ctx context.Context, arg GetActive
 		&i.Membership.CanceledByID,
 		&i.Membership.CreatedAt,
 		&i.Membership.UpdatedAt,
+		&i.User.ID,
+		&i.User.Email,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAuthenticationByEmail = `-- name: GetAuthenticationByEmail :one
+SELECT a.id, a.user_id, a.provider, a.provider_id, a.password_hash, a.created_at, a.updated_at
+FROM authentications AS a
+LEFT JOIN users AS u ON a.user_id = u.id
+WHERE u.email = $1
+  AND a.provider = $2
+`
+
+type GetAuthenticationByEmailParams struct {
+	Email    string
+	Provider string
+}
+
+func (q *Queries) GetAuthenticationByEmail(ctx context.Context, arg GetAuthenticationByEmailParams) (Authentication, error) {
+	row := q.db.QueryRow(ctx, getAuthenticationByEmail, arg.Email, arg.Provider)
+	var i Authentication
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderID,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAuthenticationByProvider = `-- name: GetAuthenticationByProvider :one
+SELECT id, user_id, provider, provider_id, password_hash, created_at, updated_at
+FROM authentications
+WHERE provider = $1
+  AND provider_id = $2
+`
+
+type GetAuthenticationByProviderParams struct {
+	Provider   string
+	ProviderID *string
+}
+
+func (q *Queries) GetAuthenticationByProvider(ctx context.Context, arg GetAuthenticationByProviderParams) (Authentication, error) {
+	row := q.db.QueryRow(ctx, getAuthenticationByProvider, arg.Provider, arg.ProviderID)
+	var i Authentication
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderID,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -341,6 +494,24 @@ func (q *Queries) GetMembership(ctx context.Context, arg GetMembershipParams) (G
 	return i, err
 }
 
+const getSession = `-- name: GetSession :one
+SELECT id, user_id, expires_at, created_at
+FROM sessions
+WHERE id = $1
+`
+
+func (q *Queries) GetSession(ctx context.Context, sessionID uuid.UUID) (Session, error) {
+	row := q.db.QueryRow(ctx, getSession, sessionID)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listActiveOrganizations = `-- name: ListActiveOrganizations :many
 SELECT o.id, o.name, o.slug, o.created_at, o.updated_at
 FROM organizations AS o
@@ -455,35 +626,6 @@ func (q *Queries) ListMemberships(ctx context.Context, organizationID uuid.UUID)
 			&i.User.Email,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listUsers = `-- name: ListUsers :many
-SELECT id, email, created_at, updated_at FROM users
-`
-
-func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUsers)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []User
-	for rows.Next() {
-		var i User
-		if err := rows.Scan(
-			&i.ID,
-			&i.Email,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

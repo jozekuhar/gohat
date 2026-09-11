@@ -1,5 +1,12 @@
 package db
 
+type AuthenticationProvider string
+
+const (
+	AuthProviderPassword = "password"
+	AuthProviderGoogle   = "google"
+)
+
 type MembershipRole string
 
 func (r MembershipRole) String() string {

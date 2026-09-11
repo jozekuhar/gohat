@@ -1,7 +1,6 @@
 package view
 
 import (
-	"mimokocke/internal/channel"
 	"mimokocke/internal/shared/authz"
 
 	g "maragu.dev/gomponents"
@@ -18,7 +17,7 @@ func NewChannel() *Channel {
 	}
 }
 
-func (v *Channel) ChannelsPage(identity authz.Identity, channels []channel.Channel) g.Node {
+func (v *Channel) ChannelsPage(identity authz.Identity) g.Node {
 	return v.layout.app(
 		identity,
 		h.Main(

@@ -8,29 +8,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// type DBTX interface {
-// 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
-// 	Query(ctx context.Context, sql string, arguments ...any) (pgx.Rows, error)
-// 	QueryRow(ctx context.Context, sql string, arguments ...any) pgx.Row
-// }
-
 type BaseRepo struct {
-	Pool    *pgxpool.Pool
-	Queries *Queries
+	pool    *pgxpool.Pool
+	queries *Queries
 }
 
 func NewBaseRepo(pool *pgxpool.Pool) *BaseRepo {
 	return &BaseRepo{
-		Pool:    pool,
-		Queries: New(pool),
+		pool:    pool,
+		queries: New(pool),
 	}
 }
 
-func (r *BaseRepo) DB(tx pgx.Tx) DBTX {
+func (r *BaseRepo) Pool() *pgxpool.Pool {
+	return r.pool
+}
+
+func (r *BaseRepo) GetQueries(tx pgx.Tx) *Queries {
 	if tx != nil {
-		return tx
+		return r.queries.WithTx(tx)
 	}
-	return r.Pool
+	return r.queries
 }
 
 func LoadPool(ctx context.Context, connString string) (*pgxpool.Pool, error) {
@@ -45,5 +43,3 @@ func LoadPool(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 
 	return pool, err
 }
-
-// TODO(jozekuhar): this is tx for sqlc

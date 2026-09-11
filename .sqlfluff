@@ -1,9 +1,17 @@
 [sqlfluff]
-exclude_rules = L029, RF04, AM04, ST06, LT05, L016
 dialect = postgres
+exclude_rules = L029, RF04, AM04, ST06, LT05, L016, layout
 templater = placeholder
+ignore = parsing,templating
 max_line_length = 0
-exclude_rules = layout
+
+[sqlfluff:rules]
+# Onemogoči pravila, ki delajo lažne alarme na sqlc poizvedbah
+aliasing.expression = False
+aliasing.unique = False
+aliasing.table = False
 
 [sqlfluff:templater:placeholder]
 param_regex = @[a-zA-Z0-9_]+
+
+

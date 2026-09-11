@@ -13,7 +13,6 @@ import (
 	"time"
 	"uuid"
 
-	"mimokocke/internal/model"
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
@@ -62,23 +61,25 @@ func NewService(
 func (s *Service) LoginUserWithPassword(
 	ctx context.Context,
 	email, password string,
-) (model.Session, error) {
+) (db.Session, error) {
 	authentication, err := s.authRepo.GetAuthenticationByEmail(
 		ctx,
-		email,
-		model.AuthProviderPassword,
+		db.GetAuthenticationByEmailParams{
+			Email:    email,
+			Provider: db.AuthProviderPassword,
+		},
 	)
 	if err != nil {
-		return model.Session{}, err
+		return db.Session{}, err
 	}
 
 	if !CheckPasswordHash(password, *authentication.PasswordHash) {
-		return model.Session{}, fmt.Errorf("invalid password")
+		return db.Session{}, fmt.Errorf("invalid password")
 	}
 
 	session, err := s.createSession(ctx, nil, authentication.UserID)
 	if err != nil {
-		return model.Session{}, err
+		return db.Session{}, err
 	}
 
 	return session, nil
@@ -92,11 +93,11 @@ type RegisterUserWithPasswordParams struct {
 func (s *Service) RegisterUserWithPassword(
 	ctx context.Context,
 	params RegisterUserWithPasswordParams,
-) (model.Session, error) {
-	var session model.Session
+) (db.Session, error) {
+	var session db.Session
 
-	err := pgx.BeginFunc(ctx, s.authRepo.Pool, func(tx pgx.Tx) error {
-		user, err := s.authRepo.CreateUser(ctx, tx, model.User{
+	err := pgx.BeginFunc(ctx, s.authRepo.Pool(), func(tx pgx.Tx) error {
+		user, err := s.authRepo.CreateUser(ctx, tx, db.CreateUserParams{
 			ID:    uuid.NewV7(),
 			Email: params.Email,
 		})
@@ -109,10 +110,10 @@ func (s *Service) RegisterUserWithPassword(
 			return err
 		}
 
-		_, err = s.authRepo.CreateAuthentication(ctx, tx, model.Authentication{
+		_, err = s.authRepo.CreateAuthentication(ctx, tx, db.CreateAuthenticationParams{
 			ID:           uuid.NewV7(),
 			UserID:       user.ID,
-			Provider:     model.AuthProviderPassword,
+			Provider:     db.AuthProviderPassword,
 			PasswordHash: &passwordHash,
 		})
 		if err != nil {
@@ -126,7 +127,7 @@ func (s *Service) RegisterUserWithPassword(
 		return nil
 	})
 	if err != nil {
-		return model.Session{}, err
+		return db.Session{}, err
 	}
 
 	return session, nil
@@ -153,8 +154,8 @@ type googleUserInfo struct {
 	VerifiedEmail bool   `json:"verified_email"`
 }
 
-func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (model.Session, error) {
-	var zero model.Session
+func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (db.Session, error) {
+	var zero db.Session
 
 	token, err := s.googleOauthConfig.Exchange(ctx, code)
 	if err != nil {
@@ -187,16 +188,18 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (model.S
 	// se prvo prijavit in potem linkat.
 	authentication, err := s.authRepo.GetAuthenticationByProvider(
 		ctx,
-		model.AuthProviderGoogle,
-		userInfo.ID,
+		db.GetAuthenticationByProviderParams{
+			Provider:   db.AuthProviderGoogle,
+			ProviderID: &userInfo.ID,
+		},
 	)
 	if err != nil {
 		if !errors.Is(err, db.ErrNotFound) {
 			return zero, err
 		}
 
-		txErr := pgx.BeginFunc(ctx, s.authRepo.Pool, func(tx pgx.Tx) error {
-			newUser, err := s.authRepo.CreateUser(ctx, tx, model.User{
+		txErr := pgx.BeginFunc(ctx, s.authRepo.Pool(), func(tx pgx.Tx) error {
+			newUser, err := s.authRepo.CreateUser(ctx, tx, db.CreateUserParams{
 				ID:    uuid.NewV7(),
 				Email: userInfo.Email,
 			})
@@ -204,12 +207,16 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (model.S
 				return fmt.Errorf("creating user: %w", err)
 			}
 
-			authentication, err = s.authRepo.CreateAuthentication(ctx, tx, model.Authentication{
-				ID:         uuid.NewV7(),
-				UserID:     newUser.ID,
-				Provider:   model.AuthProviderGoogle,
-				ProviderID: &userInfo.ID,
-			})
+			authentication, err = s.authRepo.CreateAuthentication(
+				ctx,
+				tx,
+				db.CreateAuthenticationParams{
+					ID:         uuid.NewV7(),
+					UserID:     newUser.ID,
+					Provider:   db.AuthProviderGoogle,
+					ProviderID: &userInfo.ID,
+				},
+			)
 			if err != nil {
 				return fmt.Errorf("craeting authentication: %w", err)
 			}
@@ -229,21 +236,19 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (model.S
 	return session, nil
 }
 
-func (s *Service) VerifySession(ctx context.Context, sessionID string) (model.Session, error) {
-	var zero model.Session
-
+func (s *Service) VerifySession(ctx context.Context, sessionID string) (db.Session, error) {
 	id, err := uuid.Parse(sessionID)
 	if err != nil {
-		return zero, fmt.Errorf("parsing session id: %w", err)
+		return db.Session{}, fmt.Errorf("parsing session id: %w", err)
 	}
 
 	session, err := s.authRepo.GetSession(ctx, id)
 	if err != nil {
-		return zero, fmt.Errorf("retrieve session: %w", err)
+		return db.Session{}, fmt.Errorf("retrieve session: %w", err)
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		return zero, fmt.Errorf("session expired: user %s", session.UserID)
+		return db.Session{}, fmt.Errorf("session expired: user %s", session.UserID)
 	}
 
 	return session, nil
@@ -263,14 +268,14 @@ func (s *Service) createSession(
 	ctx context.Context,
 	tx pgx.Tx,
 	userID uuid.UUID,
-) (model.Session, error) {
-	session, err := s.authRepo.CreateSession(ctx, tx, model.Session{
+) (db.Session, error) {
+	session, err := s.authRepo.CreateSession(ctx, tx, db.CreateSessionParams{
 		ID:        uuid.NewV7(),
 		UserID:    userID,
 		ExpiresAt: s.clock.NowUTC().Add(time.Hour * 24 * 14), // 14 days
 	})
 	if err != nil {
-		return model.Session{}, err
+		return db.Session{}, err
 	}
 	return session, nil
 }
