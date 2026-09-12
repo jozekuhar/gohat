@@ -84,3 +84,27 @@ func favicons() g.Node {
 		),
 	}
 }
+
+type View struct {
+	Layout      *Layout
+	Toast       *Toast
+	Auth        *auth
+	Channel     *channel
+	Dashboard   *dashboard
+	Memberships *memberships
+}
+
+func NewView() *View {
+	toast := NewToast()
+	modal := newModal()
+	layout := NewLayout()
+
+	return &View{
+		Layout:      layout,
+		Toast:       toast,
+		Auth:        newAuth(layout),
+		Channel:     newChannel(layout, modal),
+		Dashboard:   newDashboard(layout),
+		Memberships: newMemberships(layout),
+	}
+}

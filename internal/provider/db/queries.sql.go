@@ -69,6 +69,44 @@ func (q *Queries) CreateAuthentication(ctx context.Context, arg CreateAuthentica
 	return i, err
 }
 
+const createChannel = `-- name: CreateChannel :one
+INSERT INTO channels (id, organization_id, name, provider, credentials, status)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, organization_id, provider, name, credentials, status, created_at, updated_at
+`
+
+type CreateChannelParams struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	Name           string
+	Provider       ChannelProvider
+	Credentials    []byte
+	Status         ChannelStatus
+}
+
+func (q *Queries) CreateChannel(ctx context.Context, arg CreateChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, createChannel,
+		arg.ID,
+		arg.OrganizationID,
+		arg.Name,
+		arg.Provider,
+		arg.Credentials,
+		arg.Status,
+	)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Provider,
+		&i.Name,
+		&i.Credentials,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createInvitation = `-- name: CreateInvitation :one
 INSERT INTO invitations (id, organization_id, inviter_id, email, first_name, last_name, role, permissions, token_hash, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)

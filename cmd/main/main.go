@@ -67,7 +67,7 @@ func main() {
 	coreHdl := handler.NewCore()
 	tenantHdl := handler.NewTenantHandler(logger, tenantSrv, formDecoder)
 	authHdl := handler.NewAuthHandler(cfg, logger, authSrv, formDecoder, validator)
-	channelHdl := handler.NewChanneHandler(logger, channelSrv)
+	channelHdl := handler.NewChanneHandler(logger, channelSrv, formDecoder)
 
 	tenantMdw := middleware.NewTenantMiddleware(logger, tenantSrv, coreHdl)
 	authMdw := middleware.NewAuthMiddleware(logger, authSrv)
@@ -139,6 +139,8 @@ func main() {
 
 				// Channels
 				r.Get(routes.OrgChannelsPath, channelHdl.GetChannels)
+				r.Get(routes.HXOrgChannelsCreatePath, channelHdl.GetCreateChannelFormModal)
+				r.Post(routes.HXOrgChannelsCreatePath, channelHdl.PostCreateChannel)
 			})
 		})
 	})

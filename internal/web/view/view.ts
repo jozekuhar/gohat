@@ -1,5 +1,6 @@
 import "./view.css";
 import Alpine from "alpinejs";
+import ui from "@alpinejs/ui";
 import focus from "@alpinejs/focus";
 import htmx from "htmx.org";
 import modal from "./modal";
@@ -12,6 +13,7 @@ declare global {
     }
 }
 
+Alpine.plugin(ui);
 Alpine.plugin(focus);
 
 Alpine.data("modal", modal);

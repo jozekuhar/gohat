@@ -19,14 +19,10 @@ import (
 )
 
 type tenantHandler struct {
-	logger          *slog.Logger
-	tenantSrv       *tenant.Service
-	formDecoder     *form.Decoder
-	layoutView      *view.Layout
-	coreView        *view.Core
-	dashboardView   *view.Dashboard
-	membershipsView *view.Memberships
-	toastView       *view.Toast
+	logger      *slog.Logger
+	tenantSrv   *tenant.Service
+	formDecoder *form.Decoder
+	view        *view.View
 }
 
 func NewTenantHandler(
@@ -35,14 +31,10 @@ func NewTenantHandler(
 	formDecoder *form.Decoder,
 ) *tenantHandler {
 	return &tenantHandler{
-		logger:          logger,
-		tenantSrv:       tenantSrv,
-		formDecoder:     formDecoder,
-		layoutView:      view.NewLayout(),
-		coreView:        view.NewCore(),
-		dashboardView:   view.NewDashboard(),
-		membershipsView: view.NewMemberships(),
-		toastView:       view.NewToast(),
+		logger:      logger,
+		tenantSrv:   tenantSrv,
+		formDecoder: formDecoder,
+		view:        view.NewView(),
 	}
 }
 
@@ -58,7 +50,7 @@ func (h *tenantHandler) GetOrganizations(w http.ResponseWriter, r *http.Request)
 	// TODO(jozekuhar): i don't need organizations here
 	godump.Dump(organizations)
 
-	render(w, h.dashboardView.OrganizationsPage(authz.Identity{}, nil), http.StatusOK)
+	render(w, h.view.Dashboard.OrganizationsPage(authz.Identity{}, nil), http.StatusOK)
 }
 
 func (h *tenantHandler) GetSidebarOrganizationsPartial(w http.ResponseWriter, r *http.Request) {
@@ -70,11 +62,11 @@ func (h *tenantHandler) GetSidebarOrganizationsPartial(w http.ResponseWriter, r 
 		return
 	}
 
-	render(w, h.layoutView.SidebarHeaderPopoverOrganizationsPartial(organizations), http.StatusOK)
+	render(w, h.view.Layout.SidebarHeaderPopoverOrganizationsPartial(organizations), http.StatusOK)
 }
 
 func (h *tenantHandler) GetCreateOrganizationFormModal(w http.ResponseWriter, r *http.Request) {
-	render(w, h.layoutView.OrganizationCreateFormModal(), http.StatusOK)
+	render(w, h.view.Layout.OrganizationCreateFormModal(), http.StatusOK)
 }
 
 type createOrganizationForm struct {
@@ -90,7 +82,7 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 	err := r.ParseForm()
 	if err != nil {
 		h.logger.Error("parsing create organization form", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
@@ -98,7 +90,7 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 	err = h.formDecoder.Decode(&form, r.Form)
 	if err != nil {
 		h.logger.Error("decoding create organization form", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
@@ -114,14 +106,14 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 		h.logger.Warn("user tries to create new organization when limit reached", "err", err)
 		render(
 			w,
-			h.toastView.Fragment("You have reached maximum organization limit."),
+			h.view.Toast.Fragment("You have reached maximum organization limit."),
 			http.StatusBadRequest,
 		)
 		return
 	}
 	if err != nil {
 		h.logger.Error("registering organization", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
@@ -142,7 +134,7 @@ func (h *tenantHandler) GetRoot(w http.ResponseWriter, r *http.Request) {
 func (h *tenantHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	identity := tenant.MustIdentityFromContext(r.Context())
 
-	render(w, h.dashboardView.DashboardPage(identity), http.StatusOK)
+	render(w, h.view.Dashboard.DashboardPage(identity), http.StatusOK)
 }
 
 func (h *tenantHandler) GetMemberships(w http.ResponseWriter, r *http.Request) {
@@ -156,7 +148,7 @@ func (h *tenantHandler) GetMemberships(w http.ResponseWriter, r *http.Request) {
 
 	godump.Dump(data)
 
-	render(w, h.membershipsView.MembershipsPage(identity, data), http.StatusOK)
+	render(w, h.view.Memberships.MembershipsPage(identity, data), http.StatusOK)
 }
 
 func (h *tenantHandler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *http.Request) {
@@ -165,18 +157,18 @@ func (h *tenantHandler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *h
 	membershipID, err := pathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
 		h.logger.Error("getting path value uuid", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusBadRequest)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusBadRequest)
 		return
 	}
 
 	membership, err := h.tenantSrv.GetMembershipDetails(r.Context(), identity, membershipID)
 	if err != nil {
 		h.logger.Error("getting membership", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusBadRequest)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusBadRequest)
 		return
 	}
 
-	render(w, h.membershipsView.MembershipUpdateFormModal(identity, membership), http.StatusOK)
+	render(w, h.view.Memberships.MembershipUpdateFormModal(identity, membership), http.StatusOK)
 }
 
 func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) {
@@ -185,14 +177,14 @@ func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Req
 	membershipID, err := pathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
 		h.logger.Error("getting path value uuid", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusBadRequest)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusBadRequest)
 		return
 	}
 
 	err = r.ParseForm()
 	if err != nil {
 		h.logger.Error("parsing form", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
@@ -204,7 +196,7 @@ func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Req
 	err = h.formDecoder.Decode(&form, r.Form)
 	if err != nil {
 		h.logger.Error("decoding form", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
@@ -216,11 +208,11 @@ func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Req
 	})
 	if err != nil {
 		h.logger.Error("updating membership", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
-	render(w, h.toastView.Fragment("Membership succesfully updated"), http.StatusOK)
+	render(w, h.view.Toast.Fragment("Membership succesfully updated"), http.StatusOK)
 }
 
 func (h *tenantHandler) PostCancelMembership(w http.ResponseWriter, r *http.Request) {
@@ -229,14 +221,14 @@ func (h *tenantHandler) PostCancelMembership(w http.ResponseWriter, r *http.Requ
 	membershipID, err := pathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
 		h.logger.Error("getting path value uuid for membership cancel", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusBadRequest)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusBadRequest)
 		return
 	}
 
 	err = h.tenantSrv.CancelMembership(r.Context(), identity, membershipID)
 	if err != nil {
 		h.logger.Error("canceling membership", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
@@ -245,7 +237,7 @@ func (h *tenantHandler) PostCancelMembership(w http.ResponseWriter, r *http.Requ
 
 func (h *tenantHandler) GetCreateInvitationFormModal(w http.ResponseWriter, r *http.Request) {
 	identity := tenant.MustIdentityFromContext(r.Context())
-	render(w, h.membershipsView.InvitationCreateFormModal(identity), http.StatusOK)
+	render(w, h.view.Memberships.InvitationCreateFormModal(identity), http.StatusOK)
 }
 
 func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
@@ -285,7 +277,7 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 	if errors.Is(err, tenant.ErrUserAlreadyMember) {
 		render(
 			w,
-			h.toastView.Fragment("User ("+form.Email+") is already member of organization."),
+			h.view.Toast.Fragment("User ("+form.Email+") is already member of organization."),
 			http.StatusBadRequest,
 		)
 		return
@@ -293,19 +285,19 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 	if errors.Is(err, tenant.ErrInvitationAlreadyPending) {
 		render(
 			w,
-			h.toastView.Fragment("User ("+form.Email+") has already pending invitation."),
+			h.view.Toast.Fragment("User ("+form.Email+") has already pending invitation."),
 			http.StatusBadRequest,
 		)
 		return
 	}
 	if err != nil {
 		h.logger.Error("invite user to organization", "err", err)
-		render(w, h.toastView.Fragment("Something went wrong"), http.StatusInternalServerError)
+		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
 		return
 	}
 
 	godump.Dump(invitation)
-	render(w, h.toastView.Fragment("Invited"), http.StatusAccepted)
+	render(w, h.view.Toast.Fragment("Invited"), http.StatusAccepted)
 }
 
 func (h *tenantHandler) PostCancelInvitation(w http.ResponseWriter, r *http.Request) {
@@ -331,7 +323,7 @@ func (h *tenantHandler) GetShowInvitation(w http.ResponseWriter, r *http.Request
 
 	invitation, err := h.tenantSrv.GetInvitation(r.Context(), token)
 	if errors.Is(err, tenant.ErrInvitationNotPending) {
-		render(w, h.membershipsView.InvitationErrorPage(), http.StatusForbidden)
+		render(w, h.view.Memberships.InvitationErrorPage(), http.StatusForbidden)
 		return
 	}
 	if err != nil {
@@ -342,11 +334,11 @@ func (h *tenantHandler) GetShowInvitation(w http.ResponseWriter, r *http.Request
 
 	_, err = auth.AuthFromContext(r.Context())
 	if err != nil {
-		render(w, h.membershipsView.InvitationRegisterPage(token, invitation), http.StatusOK)
+		render(w, h.view.Memberships.InvitationRegisterPage(token, invitation), http.StatusOK)
 		return
 	}
 
-	render(w, h.membershipsView.InvitationAcceptPage(token, invitation), http.StatusOK)
+	render(w, h.view.Memberships.InvitationAcceptPage(token, invitation), http.StatusOK)
 }
 
 func (h *tenantHandler) PostAcceptInvitation(w http.ResponseWriter, r *http.Request) {

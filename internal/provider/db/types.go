@@ -60,3 +60,38 @@ const (
 	InvitationStatusCanceled InvitationStatus = "canceled"
 	InvitationStatusPending  InvitationStatus = "pending"
 )
+
+type ChannelProvider string
+
+func (p ChannelProvider) String() string {
+	return string(p)
+}
+
+const (
+	ChannelProviderShopify     = "shopify"
+	ChannelProviderWooCommerce = "woocommerce"
+)
+
+// type ChannelCredentials struct
+
+// Shopify
+// StoreURL
+// AccessToken
+// APIKey
+// SecretKey
+
+// Woo
+// StoreURL
+// ConsumerKey
+// ConsumerSecret
+
+type ChannelStatus string
+
+func (s ChannelStatus) String() string {
+	return string(s)
+}
+
+const (
+	ChannelStatusActive   ChannelStatus = "active"
+	ChannelStatusInactive ChannelStatus = "inactive"
+)

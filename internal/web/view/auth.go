@@ -10,17 +10,17 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-type Auth struct {
+type auth struct {
 	layout *Layout
 }
 
-func NewAuth() *Auth {
-	return &Auth{
-		layout: NewLayout(),
+func newAuth(layout *Layout) *auth {
+	return &auth{
+		layout: layout,
 	}
 }
 
-func (v *Auth) LoginPage() g.Node {
+func (v *auth) LoginPage() g.Node {
 	return v.layout.blank(
 		h.Div(
 			h.Class(
@@ -288,7 +288,7 @@ func (v *Auth) LoginPage() g.Node {
 	)
 }
 
-func (v *Auth) RegisterPage() g.Node {
+func (v *auth) RegisterPage() g.Node {
 	return v.layout.blank(
 		h.Div(
 			h.Class(

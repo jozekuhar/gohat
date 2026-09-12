@@ -290,7 +290,7 @@ func (s *Service) InviteUser(
 	return invitation, err
 }
 
-// CancelInvite maeks invitation cancelled.
+// CancelInvite cancels invite.
 func (s *Service) CancelInvite(
 	ctx context.Context,
 	identity authz.Identity,
@@ -307,7 +307,7 @@ func (s *Service) CancelInvite(
 	})
 }
 
-// GetInvitation retrieves invitation.
+// GetInvitation retrieves invite.
 func (s *Service) GetInvitation(
 	ctx context.Context,
 	token string,
@@ -329,9 +329,9 @@ func (s *Service) AcceptInvitation(
 		return err
 	}
 
-	// if !invitation.IsPending() {
-	// 	return ErrInvitationNotPending
-	// }
+	if !invitation.Invitation.IsPending() {
+		return ErrInvitationNotPending
+	}
 
 	if userEmail != invitation.Invitation.Email {
 		return fmt.Errorf("user email not same as invitation email")

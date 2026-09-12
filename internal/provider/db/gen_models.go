@@ -20,6 +20,17 @@ type Authentication struct {
 	UpdatedAt    *time.Time
 }
 
+type Channel struct {
+	ID             uuid.UUID
+	OrganizationID uuid.UUID
+	Provider       ChannelProvider
+	Name           string
+	Credentials    []byte
+	Status         ChannelStatus
+	CreatedAt      time.Time
+	UpdatedAt      *time.Time
+}
+
 type Invitation struct {
 	ID             uuid.UUID
 	OrganizationID uuid.UUID

@@ -13,17 +13,17 @@ const (
 	InputNameOrganizationSlug = "slug"
 )
 
-type Dashboard struct {
+type dashboard struct {
 	layout *Layout
 }
 
-func NewDashboard() *Dashboard {
-	return &Dashboard{
-		layout: NewLayout(),
+func newDashboard(layout *Layout) *dashboard {
+	return &dashboard{
+		layout: layout,
 	}
 }
 
-func (v *Dashboard) OrganizationsPage(identity authz.Identity, orgs []db.Organization) g.Node {
+func (v *dashboard) OrganizationsPage(identity authz.Identity, orgs []db.Organization) g.Node {
 	return v.layout.app(
 		identity,
 		h.Main(
@@ -32,7 +32,7 @@ func (v *Dashboard) OrganizationsPage(identity authz.Identity, orgs []db.Organiz
 	)
 }
 
-func (v *Dashboard) DashboardPage(identity authz.Identity) g.Node {
+func (v *dashboard) DashboardPage(identity authz.Identity) g.Node {
 	return v.layout.app(
 		identity,
 		h.Main(

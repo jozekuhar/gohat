@@ -5,13 +5,16 @@ CREATE TABLE channels (
     organization_id UUID NOT NULL REFERENCES organizations (id),
     provider TEXT NOT NULL,
     name TEXT NOT NULL,
-    url TEXT NOT NULL,
-    credentials TEXT NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT true,
+    credentials JSONB NOT NULL,
+    status TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ,
+    UNIQUE (organization_id, name),
     CONSTRAINT channels_provider_check CHECK (
         provider IN ('woocommerce', 'shopify')
+    ),
+    CONSTRAINT channels_status_check CHECK (
+        provider IN ('active', 'inactive')
     )
 );
 -- +goose StatementEnd

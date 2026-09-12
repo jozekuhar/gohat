@@ -41,6 +41,8 @@ const (
 	HXInvitationsDecline         = "/invitations/%s/decline"
 	HXInvitationsDeclinePath     = "/invitations/{" + PathInvitationToken + "}/decline"
 
-	OrgChannels     = "/%s/channels"
-	OrgChannelsPath = "/{" + PathOrganizationSlug + "}/channels"
+	OrgChannels             = "/%s/channels"
+	OrgChannelsPath         = "/{" + PathOrganizationSlug + "}/channels"
+	HXOrgChannelsCreate     = "/%s/channels/create"
+	HXOrgChannelsCreatePath = "/{" + PathOrganizationSlug + "}/channels/create"
 )

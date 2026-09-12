@@ -9,23 +9,25 @@ import (
 	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
+	"mimokocke/internal/web/view/ui"
 
+	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
 	h "maragu.dev/gomponents/html"
 )
 
-type Memberships struct {
+type memberships struct {
 	layout *Layout
 }
 
-func NewMemberships() *Memberships {
-	return &Memberships{
-		layout: NewLayout(),
+func newMemberships(layout *Layout) *memberships {
+	return &memberships{
+		layout: layout,
 	}
 }
 
-func (v *Memberships) MembershipsPage(
+func (v *memberships) MembershipsPage(
 	identity authz.Identity,
 	data tenant.MembershipsOverview,
 ) g.Node {
@@ -171,7 +173,7 @@ func (v *Memberships) MembershipsPage(
 	)
 }
 
-func (v *Memberships) membershipItem(
+func (v *memberships) membershipItem(
 	orgSlug string,
 	id uuid.UUID,
 	firstName, lastName, email, status, role string,
@@ -270,7 +272,7 @@ func (v *Memberships) membershipItem(
 	)
 }
 
-func (v *Memberships) MembershipUpdateFormModal(
+func (v *memberships) MembershipUpdateFormModal(
 	identity authz.Identity,
 	membership db.GetMembershipRow,
 ) g.Node {
@@ -296,120 +298,28 @@ func (v *Memberships) MembershipUpdateFormModal(
 			),
 			hx.Swap("none"),
 			h.Class("space-y-4"),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("First Name"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.AutoFocus(),
-					h.Placeholder("John"),
-					h.AutoComplete("off"),
-					h.Value(membership.Membership.FirstName),
-					h.Name("FirstName"),
-				),
+			ui.Input("First Name",
+				h.AutoFocus(),
+				h.Placeholder("John"),
+				h.AutoComplete("off"),
+				h.Value(membership.Membership.FirstName),
+				h.Name("FirstName"),
 			),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					h.For("_r_4t_-form-item"),
-					g.Text("Last Name"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.Placeholder("Doe"),
-					h.AutoComplete("off"),
-					h.Value(membership.Membership.LastName),
-					h.Name("LastName"),
-				),
+			ui.Input("Last Name",
+				h.Placeholder("Doe"),
+				h.AutoComplete("off"),
+				h.Value(membership.Membership.LastName),
+				h.Name("LastName"),
 			),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("Email"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.Value(membership.User.Email),
-					h.Name("Email"),
-					h.Disabled(),
-				),
+			ui.Input("Email",
+				h.Placeholder("john.doe@gmail.com"),
+				h.AutoComplete("off"),
+				h.Value(membership.User.Email),
+				h.Name("Email"),
+				h.Disabled(),
 			),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("Phone Number"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.Placeholder("+123456789"),
-					h.Value(""),
-					h.Name("PhoneNumber"),
-				),
-			),
-			// TODO(jozekuhar): state?
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("Role"),
-				),
-				h.Button(
-					h.Type("button"),
-					h.Aria("autocomplete", "none"),
-					h.Class(
-						"border-input ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 col-span-4",
-					),
-					h.Span(
-						h.Style("pointer-events: none;"),
-						g.Text("Select a role"),
-					),
-					g.Raw(
-						`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down h-4 w-4 opacity-50" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>`,
-					),
-				),
-				h.Select(
-					h.Style(
-						"position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; overflow-wrap: normal;",
-					),
-					h.Name("Role"),
-					h.Option(
-						h.Value("owner"),
-						g.Text("Owner"),
-					),
-					h.Option(
-						h.Value("admin"),
-						g.Text("Admin"),
-					),
-					h.Option(
-						h.Value("member"),
-						g.Text("Member"),
-					),
-				),
-			),
+			// TODO(jozekuhar): role
+			// TODO(jozekuhar): permissions
 			h.Div(
 				h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
 				h.Button(
@@ -424,7 +334,7 @@ func (v *Memberships) MembershipUpdateFormModal(
 	)
 }
 
-func (v *Memberships) InvitationCreateFormModal(identity authz.Identity) g.Node {
+func (v *memberships) InvitationCreateFormModal(identity authz.Identity) g.Node {
 	return v.layout.modal.fragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
@@ -438,123 +348,50 @@ func (v *Memberships) InvitationCreateFormModal(identity authz.Identity) g.Node 
 			),
 		),
 		h.Form(
+			x.Data(`{ role: null }`),
 			hx.Post(fmt.Sprintf(routes.HXOrgInvitationsCreate, identity.OrgSlug)),
 			hx.Swap("none"),
 			h.Class("space-y-4"),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("First Name"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.AutoFocus(),
-					h.Placeholder("John"),
-					h.AutoComplete("off"),
-					h.Value(""),
-					h.Name("FirstName"),
-				),
+			ui.Input("First Name",
+				h.AutoFocus(),
+				h.Placeholder("John"),
+				h.AutoComplete("off"),
+				h.Value(""),
+				h.Name("FirstName"),
 			),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					h.For("_r_4t_-form-item"),
-					g.Text("Last Name"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.Placeholder("Doe"),
-					h.AutoComplete("off"),
-					h.Value(""),
-					h.Name("LastName"),
-				),
+			ui.Input("Last Name",
+				h.Placeholder("Doe"),
+				h.AutoComplete("off"),
+				h.Value(""),
+				h.Name("LastName"),
 			),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("Email"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.Placeholder("john.doe@gmail.com"),
-					h.Value(""),
-					h.Name("Email"),
-				),
+			ui.Input("Email",
+				h.Placeholder("john.doe@gmail.com"),
+				h.AutoComplete("off"),
+				h.Name("Email"),
 			),
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("Phone Number"),
-				),
-				h.Input(
-					h.Class(
-						"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
-					),
-					h.Placeholder("+123456789"),
-					h.Value(""),
-					h.Name("PhoneNumber"),
-				),
-			),
-			// TODO(jozekuhar): state?
-			h.Div(
-				h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
-				h.Label(
-					h.Class(
-						"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
-					),
-					g.Text("Role"),
-				),
-				h.Button(
-					h.Type("button"),
-					h.Aria("autocomplete", "none"),
-					h.Class(
-						"border-input ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 col-span-4",
-					),
-					h.Span(
-						h.Style("pointer-events: none;"),
-						g.Text("Select a role"),
-					),
-					g.Raw(
-						`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down h-4 w-4 opacity-50" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>`,
-					),
-				),
-				h.Select(
-					h.Style(
-						"position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; overflow-wrap: normal;",
-					),
-					h.Name("Role"),
-					h.Option(
-						h.Value("owner"),
-						g.Text("Owner"),
-					),
-					h.Option(
-						h.Value("admin"),
-						g.Text("Admin"),
-					),
-					h.Option(
-						h.Value("member"),
-						g.Text("Member"),
-					),
-				),
-			),
+			// TODO(jozekuhar): role
+			ui.Select(ui.SelectParams{
+				Label:       "Role",
+				Placeholder: "Select a role",
+				XModel:      "role",
+				Options: []ui.SelectOption{
+					{
+						Value: "owner",
+						Text:  "Owner",
+					},
+					{
+						Value: "admin",
+						Text:  "Admin",
+					},
+					{
+						Value: "member",
+						Text:  "Member",
+					},
+				},
+			}),
+			ui.Checkbox(),
+			// TODO(jozekuhar): permissions
 			h.Div(
 				h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
 				h.Button(
@@ -569,7 +406,7 @@ func (v *Memberships) InvitationCreateFormModal(identity authz.Identity) g.Node 
 	)
 }
 
-func (v *Memberships) InvitationRegisterPage(
+func (v *memberships) InvitationRegisterPage(
 	token string,
 	invitation db.GetInvitationByTokenHashRow,
 ) g.Node {
@@ -624,7 +461,7 @@ func (v *Memberships) InvitationRegisterPage(
 	)
 }
 
-func (v *Memberships) InvitationAcceptPage(
+func (v *memberships) InvitationAcceptPage(
 	token string,
 	invitation db.GetInvitationByTokenHashRow,
 ) g.Node {
@@ -680,7 +517,7 @@ func (v *Memberships) InvitationAcceptPage(
 	)
 }
 
-func (v *Memberships) InvitationErrorPage() g.Node {
+func (v *memberships) InvitationErrorPage() g.Node {
 	return v.layout.blank(
 		g.Text("Invitaion is not available anymore"),
 	)
