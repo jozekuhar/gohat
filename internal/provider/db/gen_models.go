@@ -7,6 +7,7 @@ package db
 import (
 	"time"
 
+	"mimokocke/internal/shared/permissions"
 	"uuid"
 )
 
@@ -38,8 +39,8 @@ type Invitation struct {
 	Email          string
 	FirstName      string
 	LastName       string
-	Role           MembershipRole
-	Permissions    []MembershipPermission
+	Role           permissions.MembershipRole
+	Permissions    []permissions.MembershipPermission
 	TokenHash      string
 	ExpiresAt      time.Time
 	AcceptedAt     *time.Time
@@ -55,8 +56,8 @@ type Membership struct {
 	UserID         uuid.UUID
 	FirstName      string
 	LastName       string
-	Role           MembershipRole
-	Permissions    []MembershipPermission
+	Role           permissions.MembershipRole
+	Permissions    []permissions.MembershipPermission
 	Status         MembershipStatus
 	CanceledAt     *time.Time
 	CanceledByID   *uuid.UUID

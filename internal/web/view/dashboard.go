@@ -2,7 +2,7 @@ package view
 
 import (
 	"mimokocke/internal/provider/db"
-	"mimokocke/internal/shared/authz"
+	"mimokocke/internal/shared/identity"
 
 	g "maragu.dev/gomponents"
 	h "maragu.dev/gomponents/html"
@@ -23,18 +23,18 @@ func newDashboard(layout *Layout) *dashboard {
 	}
 }
 
-func (v *dashboard) OrganizationsPage(identity authz.Identity, orgs []db.Organization) g.Node {
+func (v *dashboard) OrganizationsPage(ident identity.Identity, orgs []db.Organization) g.Node {
 	return v.layout.app(
-		identity,
+		ident,
 		h.Main(
 			g.Text("Index"),
 		),
 	)
 }
 
-func (v *dashboard) DashboardPage(identity authz.Identity) g.Node {
+func (v *dashboard) DashboardPage(ident identity.Identity) g.Node {
 	return v.layout.app(
-		identity,
+		ident,
 		h.Main(
 			g.Text("Dashboard"),
 		),

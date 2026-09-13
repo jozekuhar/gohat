@@ -9,6 +9,7 @@ import (
 	"context"
 	"time"
 
+	"mimokocke/internal/shared/permissions"
 	"uuid"
 )
 
@@ -120,8 +121,8 @@ type CreateInvitationParams struct {
 	Email          string
 	FirstName      string
 	LastName       string
-	Role           MembershipRole
-	Permissions    []MembershipPermission
+	Role           permissions.MembershipRole
+	Permissions    []permissions.MembershipPermission
 	TokenHash      string
 	ExpiresAt      time.Time
 }
@@ -172,8 +173,8 @@ type CreateMembershipParams struct {
 	UserID         uuid.UUID
 	FirstName      string
 	LastName       string
-	Role           MembershipRole
-	Permissions    []MembershipPermission
+	Role           permissions.MembershipRole
+	Permissions    []permissions.MembershipPermission
 	Status         MembershipStatus
 }
 
@@ -571,6 +572,41 @@ func (q *Queries) ListActiveOrganizations(ctx context.Context, userID uuid.UUID)
 			&i.ID,
 			&i.Name,
 			&i.Slug,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listChannels = `-- name: ListChannels :many
+SELECT id, organization_id, provider, name, credentials, status, created_at, updated_at
+FROM channels
+WHERE organization_id = $1
+`
+
+func (q *Queries) ListChannels(ctx context.Context, organizationID uuid.UUID) ([]Channel, error) {
+	rows, err := q.db.Query(ctx, listChannels, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Channel
+	for rows.Next() {
+		var i Channel
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrganizationID,
+			&i.Provider,
+			&i.Name,
+			&i.Credentials,
+			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

@@ -7,7 +7,7 @@ import (
 
 	"mimokocke/internal/auth"
 	"mimokocke/internal/provider/db"
-	"mimokocke/internal/shared/authz"
+	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
 	"mimokocke/internal/web/handler"
@@ -33,7 +33,7 @@ func NewTenantMiddleware(
 
 func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authCtx := auth.MustAuthFromContext(r.Context())
+		authCtx := auth.MustFromContext(r.Context())
 		orgSlug := r.PathValue(routes.PathOrganizationSlug)
 
 		membership, err := m.tenantSrv.GetActiveMembership(r.Context(), authCtx.UserID, orgSlug)
@@ -46,7 +46,7 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 			return
 		}
 
-		identity := authz.Identity{
+		ident := identity.Identity{
 			ID:          authCtx.UserID,
 			Email:       membership.User.Email,
 			FirstName:   membership.Membership.FirstName,
@@ -58,7 +58,7 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 			Permissions: membership.Membership.Permissions,
 		}
 
-		ctx := tenant.WithIdentity(r.Context(), identity)
+		ctx := identity.WithContext(r.Context(), ident)
 		newR := r.WithContext(ctx)
 
 		handler.ServeHTTP(w, newR)

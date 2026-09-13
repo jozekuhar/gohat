@@ -18,11 +18,11 @@ type AuthContext struct {
 	UserEmail string
 }
 
-func WithAuthContext(ctx context.Context, u AuthContext) context.Context {
+func WithContext(ctx context.Context, u AuthContext) context.Context {
 	return context.WithValue(ctx, userContextKey, u)
 }
 
-func AuthFromContext(ctx context.Context) (AuthContext, error) {
+func FromContext(ctx context.Context) (AuthContext, error) {
 	value, ok := ctx.Value(userContextKey).(AuthContext)
 	if !ok {
 		return AuthContext{}, fmt.Errorf("user not found in context")
@@ -30,7 +30,7 @@ func AuthFromContext(ctx context.Context) (AuthContext, error) {
 	return value, nil
 }
 
-func MustAuthFromContext(ctx context.Context) AuthContext {
+func MustFromContext(ctx context.Context) AuthContext {
 	value, ok := ctx.Value(userContextKey).(AuthContext)
 	if !ok {
 		log.Panicf("required value from context: %s", userContextKey)

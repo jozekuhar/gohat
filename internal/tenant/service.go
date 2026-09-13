@@ -9,9 +9,10 @@ import (
 	"uuid"
 
 	"mimokocke/internal/provider/db"
-	"mimokocke/internal/shared/authz"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
+	"mimokocke/internal/shared/identity"
+	"mimokocke/internal/shared/permissions"
 	"mimokocke/internal/shared/routes"
 
 	"github.com/gosimple/slug"
@@ -94,8 +95,8 @@ func (s *Service) RegisterOrganization(
 			UserID:         userID,
 			FirstName:      firstName,
 			LastName:       lastName,
-			Role:           db.RoleOwner,
-			Permissions:    []db.MembershipPermission{},
+			Role:           permissions.RoleOwner,
+			Permissions:    []permissions.MembershipPermission{},
 			Status:         db.MemberStatusActive,
 		},
 		)
@@ -127,10 +128,10 @@ type MembershipsOverview struct {
 
 func (s *Service) GetMembershipsOverview(
 	ctx context.Context,
-	identity authz.Identity,
+	ident identity.Identity,
 ) (MembershipsOverview, error) {
-	if !identity.HasPermission(db.PermMembershipRead) {
-		return MembershipsOverview{}, authz.ErrPermissionDenied
+	if !ident.HasPermission(permissions.MembershipRead) {
+		return MembershipsOverview{}, permissions.ErrDenied
 	}
 
 	var data MembershipsOverview
@@ -138,28 +139,28 @@ func (s *Service) GetMembershipsOverview(
 
 	data.Memberhips, err = s.tenantRepo.ListMemberships(
 		ctx,
-		identity.OrgID,
+		ident.OrgID,
 	)
 	if err != nil {
 		return MembershipsOverview{}, err
 	}
 
-	data.Invitations, err = s.tenantRepo.ListInvitations(ctx, identity.OrgID)
+	data.Invitations, err = s.tenantRepo.ListInvitations(ctx, ident.OrgID)
 
 	return data, err
 }
 
 func (s *Service) GetMembershipDetails(
 	ctx context.Context,
-	identity authz.Identity,
+	ident identity.Identity,
 	membershipID uuid.UUID,
 ) (db.GetMembershipRow, error) {
-	if !identity.HasPermission(db.PermMembershipRead) {
-		return db.GetMembershipRow{}, authz.ErrPermissionDenied
+	if !ident.HasPermission(permissions.MembershipRead) {
+		return db.GetMembershipRow{}, permissions.ErrDenied
 	}
 
 	return s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
-		OrganizationID: identity.OrgID,
+		OrganizationID: ident.OrgID,
 		MembershipID:   membershipID,
 	})
 }
@@ -177,30 +178,30 @@ func (s *Service) UpdateMembership(ctx context.Context, m db.Membership) (db.Mem
 // CancelMembership cancels a membership.
 func (s *Service) CancelMembership(
 	ctx context.Context,
-	identity authz.Identity,
+	ident identity.Identity,
 	membershipID uuid.UUID,
 ) error {
 	membership, err := s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
-		OrganizationID: identity.OrgID,
+		OrganizationID: ident.OrgID,
 		MembershipID:   membershipID,
 	})
 	if err != nil {
 		return err
 	}
 
-	isOwnMembership := membership.Membership.UserID == identity.ID
-	hasDeletePermission := identity.HasPermission(db.PermMembershipDelete)
+	isOwnMembership := membership.Membership.UserID == ident.ID
+	hasDeletePermission := ident.HasPermission(permissions.MembershipDelete)
 
 	if !isOwnMembership && !hasDeletePermission {
-		return authz.ErrPermissionDenied
+		return permissions.ErrDenied
 	}
 
 	return s.tenantRepo.UpdateMembershipCanceled(
 		ctx,
 		nil,
 		db.UpdateMembershipCanceledParams{
-			CanceledByID:   &identity.ID,
-			OrganizationID: identity.OrgID,
+			CanceledByID:   &ident.ID,
+			OrganizationID: ident.OrgID,
 			MembershipID:   membershipID,
 		},
 	)
@@ -210,22 +211,22 @@ type InviteUserParams struct {
 	Email       string
 	FirstName   string
 	LastName    string
-	Role        db.MembershipRole
-	Permissions []db.MembershipPermission
+	Role        permissions.MembershipRole
+	Permissions []permissions.MembershipPermission
 }
 
 // InviteUser handles sending invitation to user to join organization.
 func (s *Service) InviteUser(
 	ctx context.Context,
-	identity authz.Identity,
+	ident identity.Identity,
 	params InviteUserParams,
 ) (db.Invitation, error) {
-	if !identity.HasPermission(db.PermMembershipCreate) {
-		return db.Invitation{}, authz.ErrPermissionDenied
+	if !ident.HasPermission(permissions.MembershipCreate) {
+		return db.Invitation{}, permissions.ErrDenied
 	}
 
 	isMember, err := s.tenantRepo.CheckMembershipByEmail(ctx, db.CheckMembershipByEmailParams{
-		OrganizationID: identity.OrgID,
+		OrganizationID: ident.OrgID,
 		Email:          params.Email,
 	})
 	if err != nil {
@@ -238,7 +239,7 @@ func (s *Service) InviteUser(
 	latestInvitation, err := s.tenantRepo.GetLatestInvitationByEmail(
 		ctx,
 		db.GetLatestInvitationByEmailParams{
-			OrganizationID: identity.OrgID,
+			OrganizationID: ident.OrgID,
 			Email:          params.Email,
 		},
 	)
@@ -256,8 +257,8 @@ func (s *Service) InviteUser(
 
 	invitation, err := s.tenantRepo.CreateInvitation(ctx, nil, db.CreateInvitationParams{
 		ID:             uuid.NewV7(),
-		OrganizationID: identity.OrgID,
-		InviterID:      identity.ID,
+		OrganizationID: ident.OrgID,
+		InviterID:      ident.ID,
 		Email:          params.Email,
 		FirstName:      params.FirstName,
 		LastName:       params.LastName,
@@ -293,16 +294,16 @@ func (s *Service) InviteUser(
 // CancelInvite cancels invite.
 func (s *Service) CancelInvite(
 	ctx context.Context,
-	identity authz.Identity,
+	ident identity.Identity,
 	invitationID uuid.UUID,
 ) error {
-	if !identity.HasPermission(db.PermMembershipDelete) {
-		return authz.ErrPermissionDenied
+	if !ident.HasPermission(permissions.MembershipDelete) {
+		return permissions.ErrDenied
 	}
 
 	return s.tenantRepo.UpdateInvitationCanceled(ctx, nil, db.UpdateInvitationCanceledParams{
-		CanceledByID:   &identity.ID,
-		OrganizationID: identity.OrgID,
+		CanceledByID:   &ident.ID,
+		OrganizationID: ident.OrgID,
 		InvitationID:   invitationID,
 	})
 }

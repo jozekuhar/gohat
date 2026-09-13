@@ -77,7 +77,3 @@ func (v *modal) fragment(nodes ...g.Node) g.Node {
 		),
 	)
 }
-
-// func (v *modal) onClose() g.Node {
-// 	return x.On("click", "destroy()")
-// }

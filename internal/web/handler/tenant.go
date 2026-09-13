@@ -8,7 +8,8 @@ import (
 
 	"mimokocke/internal/auth"
 	"mimokocke/internal/provider/db"
-	"mimokocke/internal/shared/authz"
+	"mimokocke/internal/shared/identity"
+	"mimokocke/internal/shared/permissions"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
 	"mimokocke/internal/web/view"
@@ -39,7 +40,7 @@ func NewTenantHandler(
 }
 
 func (h *tenantHandler) GetOrganizations(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustAuthFromContext(r.Context())
+	authCtx := auth.MustFromContext(r.Context())
 
 	organizations, err := h.tenantSrv.ListActiveOrganizations(r.Context(), authCtx.UserID)
 	if err != nil {
@@ -50,11 +51,11 @@ func (h *tenantHandler) GetOrganizations(w http.ResponseWriter, r *http.Request)
 	// TODO(jozekuhar): i don't need organizations here
 	godump.Dump(organizations)
 
-	render(w, h.view.Dashboard.OrganizationsPage(authz.Identity{}, nil), http.StatusOK)
+	render(w, h.view.Dashboard.OrganizationsPage(identity.Identity{}, nil), http.StatusOK)
 }
 
 func (h *tenantHandler) GetSidebarOrganizationsPartial(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustAuthFromContext(r.Context())
+	authCtx := auth.MustFromContext(r.Context())
 
 	organizations, err := h.tenantSrv.ListActiveOrganizations(r.Context(), authCtx.UserID)
 	if err != nil {
@@ -77,7 +78,7 @@ type createOrganizationForm struct {
 }
 
 func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustAuthFromContext(r.Context())
+	authCtx := auth.MustFromContext(r.Context())
 
 	err := r.ParseForm()
 	if err != nil {
@@ -121,26 +122,26 @@ func (h *tenantHandler) PostCreateOrganization(w http.ResponseWriter, r *http.Re
 }
 
 func (h *tenantHandler) GetRoot(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
 	http.Redirect(
 		w,
 		r,
-		fmt.Sprintf(routes.OrgDashboard, identity.OrgSlug),
+		fmt.Sprintf(routes.OrgDashboard, ident.OrgSlug),
 		http.StatusFound,
 	)
 }
 
 func (h *tenantHandler) GetDashboard(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
-	render(w, h.view.Dashboard.DashboardPage(identity), http.StatusOK)
+	render(w, h.view.Dashboard.DashboardPage(ident), http.StatusOK)
 }
 
 func (h *tenantHandler) GetMemberships(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
-	data, err := h.tenantSrv.GetMembershipsOverview(r.Context(), identity)
+	data, err := h.tenantSrv.GetMembershipsOverview(r.Context(), ident)
 	if err != nil {
 		h.logger.Error("getting memberships data", "err", err)
 		return
@@ -148,11 +149,11 @@ func (h *tenantHandler) GetMemberships(w http.ResponseWriter, r *http.Request) {
 
 	godump.Dump(data)
 
-	render(w, h.view.Memberships.MembershipsPage(identity, data), http.StatusOK)
+	render(w, h.view.Memberships.MembershipsPage(ident, data), http.StatusOK)
 }
 
 func (h *tenantHandler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
 	membershipID, err := pathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
@@ -161,18 +162,18 @@ func (h *tenantHandler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *h
 		return
 	}
 
-	membership, err := h.tenantSrv.GetMembershipDetails(r.Context(), identity, membershipID)
+	membership, err := h.tenantSrv.GetMembershipDetails(r.Context(), ident, membershipID)
 	if err != nil {
 		h.logger.Error("getting membership", "err", err)
 		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusBadRequest)
 		return
 	}
 
-	render(w, h.view.Memberships.MembershipUpdateFormModal(identity, membership), http.StatusOK)
+	render(w, h.view.Memberships.MembershipUpdateFormModal(ident, membership), http.StatusOK)
 }
 
 func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
 	membershipID, err := pathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
@@ -202,7 +203,7 @@ func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Req
 
 	_, err = h.tenantSrv.UpdateMembership(r.Context(), db.Membership{
 		ID:             membershipID,
-		OrganizationID: identity.OrgID,
+		OrganizationID: ident.OrgID,
 		FirstName:      form.FirstName,
 		LastName:       form.LastName,
 	})
@@ -216,7 +217,7 @@ func (h *tenantHandler) PatchUpdateMembership(w http.ResponseWriter, r *http.Req
 }
 
 func (h *tenantHandler) PostCancelMembership(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
 	membershipID, err := pathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
@@ -225,7 +226,7 @@ func (h *tenantHandler) PostCancelMembership(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = h.tenantSrv.CancelMembership(r.Context(), identity, membershipID)
+	err = h.tenantSrv.CancelMembership(r.Context(), ident, membershipID)
 	if err != nil {
 		h.logger.Error("canceling membership", "err", err)
 		render(w, h.view.Toast.Fragment("Something went wrong"), http.StatusInternalServerError)
@@ -236,12 +237,12 @@ func (h *tenantHandler) PostCancelMembership(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *tenantHandler) GetCreateInvitationFormModal(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
-	render(w, h.view.Memberships.InvitationCreateFormModal(identity), http.StatusOK)
+	ident := identity.MustFromContext(r.Context())
+	render(w, h.view.Memberships.InvitationCreateFormModal(ident), http.StatusOK)
 }
 
 func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
 	err := r.ParseForm()
 	if err != nil {
@@ -253,8 +254,8 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 		Email       string
 		FirstName   string
 		LastName    string
-		Role        db.MembershipRole
-		Permissions []db.MembershipPermission
+		Role        permissions.MembershipRole
+		Permissions []permissions.MembershipPermission
 	}
 
 	err = h.formDecoder.Decode(&form, r.Form)
@@ -265,7 +266,7 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 
 	invitation, err := h.tenantSrv.InviteUser(
 		r.Context(),
-		identity,
+		ident,
 		tenant.InviteUserParams{
 			Email:       form.Email,
 			FirstName:   form.FirstName,
@@ -301,7 +302,7 @@ func (h *tenantHandler) PostCreateInvitation(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *tenantHandler) PostCancelInvitation(w http.ResponseWriter, r *http.Request) {
-	identity := tenant.MustIdentityFromContext(r.Context())
+	ident := identity.MustFromContext(r.Context())
 
 	invitationID, err := pathValueUUID(r, routes.PathInvitationID)
 	if err != nil {
@@ -309,7 +310,7 @@ func (h *tenantHandler) PostCancelInvitation(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = h.tenantSrv.CancelInvite(r.Context(), identity, invitationID)
+	err = h.tenantSrv.CancelInvite(r.Context(), ident, invitationID)
 	if err != nil {
 		h.logger.Error("canceling invitation", "err", err)
 		return
@@ -332,7 +333,7 @@ func (h *tenantHandler) GetShowInvitation(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, err = auth.AuthFromContext(r.Context())
+	_, err = auth.FromContext(r.Context())
 	if err != nil {
 		render(w, h.view.Memberships.InvitationRegisterPage(token, invitation), http.StatusOK)
 		return
@@ -342,7 +343,7 @@ func (h *tenantHandler) GetShowInvitation(w http.ResponseWriter, r *http.Request
 }
 
 func (h *tenantHandler) PostAcceptInvitation(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustAuthFromContext(r.Context())
+	authCtx := auth.MustFromContext(r.Context())
 
 	token := r.PathValue(routes.PathInvitationToken)
 
@@ -357,7 +358,7 @@ func (h *tenantHandler) PostAcceptInvitation(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *tenantHandler) PostDeclineInvitation(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustAuthFromContext(r.Context())
+	authCtx := auth.MustFromContext(r.Context())
 
 	token := r.PathValue(routes.PathInvitationToken)
 

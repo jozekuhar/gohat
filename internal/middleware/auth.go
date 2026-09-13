@@ -57,7 +57,7 @@ func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := auth.WithAuthContext(r.Context(), auth.AuthContext{
+		ctx := auth.WithContext(r.Context(), auth.AuthContext{
 			UserID:    s.UserID,
 			UserEmail: "peterpan@gmail.com", // todo
 		})
@@ -81,7 +81,7 @@ func (m *authMiddleware) OptionalAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := auth.WithAuthContext(r.Context(), auth.AuthContext{
+		ctx := auth.WithContext(r.Context(), auth.AuthContext{
 			UserID:    s.UserID,
 			UserEmail: "peterpan@gmail.com", // todo
 		})

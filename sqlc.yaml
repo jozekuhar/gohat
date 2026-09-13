@@ -60,10 +60,12 @@ sql:
 
                   - column: "memberships.role"
                     go_type:
+                        import: "mimokocke/internal/shared/permissions"
                         type: "MembershipRole"
 
                   - column: "memberships.permissions"
                     go_type:
+                        import: "mimokocke/internal/shared/permissions"
                         type: "MembershipPermission"
                         slice: true
 
@@ -73,10 +75,12 @@ sql:
 
                   - column: "invitations.role"
                     go_type:
+                        import: "mimokocke/internal/shared/permissions"
                         type: "MembershipRole"
 
                   - column: "invitations.permissions"
                     go_type:
+                        import: "mimokocke/internal/shared/permissions"
                         type: "MembershipPermission"
                         slice: true
 

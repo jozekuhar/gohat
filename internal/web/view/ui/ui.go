@@ -12,7 +12,17 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-func Input(label string, nodes ...g.Node) g.Node {
+type InputParams struct {
+	Label        string
+	Name         string
+	Value        string
+	Placeholder  string
+	Disabled     bool
+	AutoFocus    bool
+	AutoComplete string
+}
+
+func Input(params InputParams) g.Node {
 	id := generateID()
 
 	return h.Div(
@@ -22,20 +32,27 @@ func Input(label string, nodes ...g.Node) g.Node {
 			h.Class(
 				"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
 			),
-			g.Text(label),
+			g.Text(params.Label),
 		),
 		h.Input(
 			h.ID(id),
 			h.Class(
 				"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm col-span-4",
 			),
-			g.Group(nodes),
+			g.If(params.Name != "", h.Name(params.Name)),
+			g.If(params.Value != "", h.Value(params.Value)),
+			g.If(params.Placeholder != "", h.Placeholder(params.Placeholder)),
+			g.If(params.Disabled, h.Disabled()),
+			g.If(params.AutoFocus, h.AutoFocus()),
+			g.If(params.AutoComplete != "", h.AutoComplete(params.AutoComplete)),
 		),
 	)
 }
 
 type SelectParams struct {
 	Label       string
+	Name        string
+	Value       string
 	Placeholder string
 	XModel      string
 	Options     []SelectOption
@@ -47,7 +64,7 @@ type SelectOption struct {
 }
 
 func Select(params SelectParams) g.Node {
-	id := generateID()
+	// id := generateID()
 	options, _ := json.Marshal(params.Options)
 
 	return h.Div(
@@ -56,8 +73,14 @@ func Select(params SelectParams) g.Node {
 		x.Model(params.XModel),
 		g.Attr("x-listbox"),
 		h.Class("grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1"),
+		h.Input(
+			h.Class("hidden"),
+			x.Bind("value", "value"),
+			h.Name(params.Name),
+			// g.If(params.Value != "", h.Value(params.Value)),
+		),
 		h.Label(
-			h.For(id),
+			// h.For(id),
 			h.Class(
 				"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
 			),
@@ -67,7 +90,7 @@ func Select(params SelectParams) g.Node {
 			h.Class("relative col-span-4"),
 			h.Button(
 				g.Attr("x-listbox:button"),
-				h.ID(id),
+				// h.ID(id),
 				h.Type("button"),
 				h.Class(
 					"border-input ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
@@ -128,27 +151,40 @@ func Select(params SelectParams) g.Node {
 	)
 }
 
-func Checkbox() g.Node {
-	id := generateID()
+type CheckboxParams struct {
+	Label        string
+	Name         string
+	Value        string
+	AutoComplete string
+}
 
-	return h.Div(
-		h.Class("flex items-center space-y-0 space-x-3"),
-		h.Label(
-			h.For(id),
-			g.Text("Delete Memberships"),
-		),
+func Checkbox(params CheckboxParams) g.Node {
+	return h.Label(
+		h.Class("flex items-center gap-2 px-2 hover:bg-gray-100 dark:hover:bg-gray-800"),
 		h.Input(
-			h.ID(id),
-			h.Class(
-				"border-primary text-primary focus-visible:ring-ring aspect-square h-4 w-4 rounded-full border shadow-sm focus:outline-hidden focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50",
-			),
 			h.Type("checkbox"),
-			h.Value("memberships:delete"),
-			h.Span(
-				h.Class("flex items-center justify-center"),
-				g.Raw(
-					`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle fill-primary h-3.5 w-3.5" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle></svg>`,
-				),
+			h.Class("peer sr-only"),
+			g.If(params.Name != "", h.Name(params.Name)),
+			g.If(params.Value != "", h.Value(params.Value)),
+			g.If(params.AutoComplete != "", h.AutoComplete(params.AutoComplete)),
+		),
+		h.Button(
+			h.Type("button"),
+			h.Role("checkbox"),
+			c.Classes{
+				"border-primary focus-visible:ring-ring h-4 w-4 shrink-0 rounded-sm border shadow-sm focus-visible:ring-1 focus-visible:outline-hidden ": true,
+				"peer-checked:bg-primary peer-checked:text-primary-foreground":                                                                           true,
+				"disabled:cursor-not-allowed disabled:opacity-50":                                                                                        true,
+			},
+		),
+		h.Span(
+			c.Classes{
+				"text-sm font-medium leading-none flex h-full flex-1 cursor-pointer items-center justify-between py-2": true,
+				"peer-disabled:cursor-not-allowed peer-disabled:opacity-70":                                            true,
+			},
+			h.P(
+				h.Class("text-xs"),
+				g.Text(params.Label),
 			),
 		),
 	)

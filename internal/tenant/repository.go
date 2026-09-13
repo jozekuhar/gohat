@@ -2,6 +2,8 @@ package tenant
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"uuid"
 
 	"mimokocke/internal/provider/db"
@@ -118,7 +120,14 @@ func (r *repository) GetLatestInvitationByEmail(
 	ctx context.Context,
 	params db.GetLatestInvitationByEmailParams,
 ) (db.Invitation, error) {
-	return r.GetQueries(nil).GetLatestInvitationByEmail(ctx, params)
+	i, err := r.GetQueries(nil).GetLatestInvitationByEmail(ctx, params)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return db.Invitation{}, db.ErrNotFound
+		}
+		return db.Invitation{}, fmt.Errorf("GetLatestInvitationByEmail: %w", err)
+	}
+	return i, nil
 }
 
 func (r *repository) UpdateInvitationAcceptedAt(

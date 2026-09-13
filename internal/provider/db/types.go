@@ -7,35 +7,6 @@ const (
 	AuthProviderGoogle   = "google"
 )
 
-type MembershipRole string
-
-func (r MembershipRole) String() string {
-	return string(r)
-}
-
-const (
-	RoleOwner  MembershipRole = "owner"
-	RoleAdmin  MembershipRole = "admin"
-	RoleMember MembershipRole = "member"
-)
-
-type MembershipPermission string
-
-func (p MembershipPermission) String() string {
-	return string(p)
-}
-
-const (
-	PermMembershipRead   MembershipPermission = "membership:read"
-	PermMembershipCreate MembershipPermission = "membership:create"
-	PermMembershipUpdate MembershipPermission = "membership:update"
-	PermMembershipDelete MembershipPermission = "membership:delete"
-	PermChannelRead      MembershipPermission = "channel:read"
-	PermChannelCreate    MembershipPermission = "channel:create"
-	PermChannelUpdate    MembershipPermission = "channel:update"
-	PermChannelDelete    MembershipPermission = "channel:delete"
-)
-
 type MembershipStatus string
 
 func (s MembershipStatus) String() string {
@@ -71,19 +42,6 @@ const (
 	ChannelProviderShopify     = "shopify"
 	ChannelProviderWooCommerce = "woocommerce"
 )
-
-// type ChannelCredentials struct
-
-// Shopify
-// StoreURL
-// AccessToken
-// APIKey
-// SecretKey
-
-// Woo
-// StoreURL
-// ConsumerKey
-// ConsumerSecret
 
 type ChannelStatus string
 

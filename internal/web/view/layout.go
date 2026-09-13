@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"mimokocke/internal/provider/db"
-	"mimokocke/internal/shared/authz"
+	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
 
 	x "github.com/glsubri/gomponents-alpine"
@@ -38,7 +38,7 @@ func (v *Layout) blank(children ...g.Node) g.Node {
 	)
 }
 
-func (v *Layout) app(identity authz.Identity, children ...g.Node) g.Node {
+func (v *Layout) app(ident identity.Identity, children ...g.Node) g.Node {
 	return v.base(
 		h.Div(
 			x.Cloak(),
@@ -46,7 +46,7 @@ func (v *Layout) app(identity authz.Identity, children ...g.Node) g.Node {
 			h.Class("flex flex-1 flex-col"),
 			h.Div(
 				h.Class("flex min-h-svh w-full"),
-				v.sidebar(identity),
+				v.sidebar(ident),
 				v.content(children...),
 			),
 		),
@@ -91,7 +91,7 @@ func (v *Layout) base(children ...g.Node) g.Node {
 	})
 }
 
-func (v *Layout) sidebar(identity authz.Identity) g.Node {
+func (v *Layout) sidebar(ident identity.Identity) g.Node {
 	return h.Div(
 		h.Class("relative"),
 		h.Div(
@@ -130,17 +130,17 @@ func (v *Layout) sidebar(identity authz.Identity) g.Node {
 				},
 				h.Div(
 					h.Class("bg-sidebar flex flex-col h-full w-full"),
-					v.sidebarHeader(identity),
-					g.If(identity.OrgSlug == "", v.sidebarContentEmpty()),
-					g.If(identity.OrgSlug != "", v.sidebarContent(identity)),
-					v.sidebarFooter(identity),
+					v.sidebarHeader(ident),
+					g.If(ident.OrgSlug == "", v.sidebarContentEmpty()),
+					g.If(ident.OrgSlug != "", v.sidebarContent(ident)),
+					v.sidebarFooter(ident),
 				),
 			),
 		),
 	)
 }
 
-func (v *Layout) sidebarHeader(identity authz.Identity) g.Node {
+func (v *Layout) sidebarHeader(ident identity.Identity) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -190,11 +190,11 @@ func (v *Layout) sidebarHeader(identity authz.Identity) g.Node {
 						h.Class("grid flex-1 text-left text-xs leading-tight"),
 						h.Span(
 							h.Class("truncate font-semibold"),
-							g.Text(identity.OrgName),
+							g.Text(ident.OrgName),
 						),
 						h.Span(
 							h.Class("truncate text-xs"),
-							g.Text(identity.OrgSlug),
+							g.Text(ident.OrgSlug),
 						),
 					),
 					g.Raw(
@@ -372,7 +372,7 @@ func (v *Layout) sidebarContentEmpty() g.Node {
 	)
 }
 
-func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
+func (v *Layout) sidebarContent(ident identity.Identity) g.Node {
 	return h.Div(
 		h.Class("flex min-h-0 flex-1 flex-col gap-2 overflow-auto"),
 		// Group
@@ -398,7 +398,7 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 							"focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": true,
 							"[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 ":                                                                                    true,
 						},
-						h.Href(fmt.Sprintf(routes.OrgDashboard, identity.OrgSlug)),
+						h.Href(fmt.Sprintf(routes.OrgDashboard, ident.OrgSlug)),
 						g.Raw(
 							`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-layout-dashboard "><path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1"></path><path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1"></path><path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1"></path><path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1"></path></svg>`,
 						),
@@ -417,7 +417,7 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 							"focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": true,
 							"[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0":                                                                                     true,
 						},
-						h.Href(fmt.Sprintf(routes.OrgMemberships, identity.OrgSlug)),
+						h.Href(fmt.Sprintf(routes.OrgMemberships, ident.OrgSlug)),
 						g.Raw(
 							`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-users "><path d="M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"></path></svg>`,
 						),
@@ -436,7 +436,7 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 							"focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground": true,
 							"[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 ":                                                                                    true,
 						},
-						h.Href(fmt.Sprintf(routes.OrgChannels, identity.OrgSlug)),
+						h.Href(fmt.Sprintf(routes.OrgChannels, ident.OrgSlug)),
 						g.Raw(
 							`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-apps "><path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4"></path><path d="M14 7l6 0"></path><path d="M17 4l0 6"></path></svg>`,
 						),
@@ -450,7 +450,7 @@ func (v *Layout) sidebarContent(identity authz.Identity) g.Node {
 	)
 }
 
-func (v *Layout) sidebarFooter(identity authz.Identity) g.Node {
+func (v *Layout) sidebarFooter(ident identity.Identity) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -489,11 +489,11 @@ func (v *Layout) sidebarFooter(identity authz.Identity) g.Node {
 						h.Class("grid flex-1 text-left text-sm leading-tight"),
 						h.Span(
 							h.Class("truncate font-semibold"),
-							g.Textf("%s %s", identity.FirstName, identity.LastName),
+							g.Textf("%s %s", ident.FirstName, ident.LastName),
 						),
 						h.Span(
 							h.Class("truncate text-xs"),
-							g.Text(identity.Email),
+							g.Text(ident.Email),
 						),
 					),
 					g.Raw(
@@ -502,11 +502,11 @@ func (v *Layout) sidebarFooter(identity authz.Identity) g.Node {
 				),
 			),
 		),
-		v.sidebarFooterPopover(identity),
+		v.sidebarFooterPopover(ident),
 	)
 }
 
-func (v *Layout) sidebarFooterPopover(identity authz.Identity) g.Node {
+func (v *Layout) sidebarFooterPopover(ident identity.Identity) g.Node {
 	type menuItem struct {
 		href string
 		svg  string
@@ -538,11 +538,11 @@ func (v *Layout) sidebarFooterPopover(identity authz.Identity) g.Node {
 					h.Class("grid flex-1 text-left text-sm leading-tight"),
 					h.Span(
 						h.Class("truncate font-semibold"),
-						g.Textf("%s %s", identity.FirstName, identity.LastName),
+						g.Textf("%s %s", ident.FirstName, ident.LastName),
 					),
 					h.Span(
 						h.Class("truncate text-xs"),
-						g.Text(identity.Email),
+						g.Text(ident.Email),
 					),
 				),
 			),

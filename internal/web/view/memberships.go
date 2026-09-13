@@ -6,7 +6,8 @@ import (
 	"uuid"
 
 	"mimokocke/internal/provider/db"
-	"mimokocke/internal/shared/authz"
+	"mimokocke/internal/shared/identity"
+	"mimokocke/internal/shared/permissions"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/tenant"
 	"mimokocke/internal/web/view/ui"
@@ -28,11 +29,11 @@ func newMemberships(layout *Layout) *memberships {
 }
 
 func (v *memberships) MembershipsPage(
-	identity authz.Identity,
+	ident identity.Identity,
 	data tenant.MembershipsOverview,
 ) g.Node {
 	return v.layout.app(
-		identity,
+		ident,
 		h.Div(
 			h.Class("flex h-full flex-col overflow-hidden"),
 			h.Div(
@@ -68,7 +69,7 @@ func (v *memberships) MembershipsPage(
 									hx.Get(
 										fmt.Sprintf(
 											routes.HXOrgInvitationsCreate,
-											identity.OrgSlug,
+											ident.OrgSlug,
 										),
 									),
 									hx.Swap("none"),
@@ -89,7 +90,7 @@ func (v *memberships) MembershipsPage(
 								hx.Get(
 									fmt.Sprintf(
 										routes.HXOrgInvitationsCreate,
-										identity.OrgSlug,
+										ident.OrgSlug,
 									),
 								),
 								hx.Swap("none"),
@@ -143,7 +144,7 @@ func (v *memberships) MembershipsPage(
 						h.Div(
 							g.Map(data.Invitations, func(invite db.Invitation) g.Node {
 								return v.membershipItem(
-									identity.OrgSlug,
+									ident.OrgSlug,
 									uuid.UUID{},
 									invite.FirstName,
 									invite.LastName,
@@ -155,7 +156,7 @@ func (v *memberships) MembershipsPage(
 							}),
 							g.Map(data.Memberhips, func(m db.ListMembershipsRow) g.Node {
 								return v.membershipItem(
-									identity.OrgSlug,
+									ident.OrgSlug,
 									m.Membership.ID,
 									m.Membership.FirstName,
 									m.Membership.LastName,
@@ -226,28 +227,8 @@ func (v *memberships) membershipItem(
 			h.Class("w-[150px] shrink-0 lg:w-[16%] lg:shrink"),
 			h.Div(
 				h.Class("flex items-center gap-2"),
-				h.SVG(
-					g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-					h.Width("24"),
-					h.Height("24"),
-					g.Attr("viewBox", "0 0 24 24"),
-					g.Attr("fill", "none"),
-					g.Attr("stroke", "currentColor"),
-					g.Attr("stroke-width", "2"),
-					g.Attr("stroke-linecap", "round"),
-					g.Attr("stroke-linejoin", "round"),
-					h.Class(
-						"lucide lucide-circle-check size-4 shrink-0 text-green-500",
-					),
-					h.Aria("hidden", "true"),
-					g.El("circle",
-						g.Attr("cx", "12"),
-						g.Attr("cy", "12"),
-						g.Attr("r", "10"),
-					),
-					g.El("path",
-						g.Attr("d", "m9 12 2 2 4-4"),
-					),
+				g.Raw(
+					`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check size-4 shrink-0 text-green-500" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>`,
 				),
 				h.Span(
 					h.Class(
@@ -273,7 +254,7 @@ func (v *memberships) membershipItem(
 }
 
 func (v *memberships) MembershipUpdateFormModal(
-	identity authz.Identity,
+	ident identity.Identity,
 	membership db.GetMembershipRow,
 ) g.Node {
 	return v.layout.modal.fragment(
@@ -289,37 +270,120 @@ func (v *memberships) MembershipUpdateFormModal(
 			),
 		),
 		h.Form(
+			x.Data(fmt.Sprintf(`{ role: %q }`, membership.Membership.Role.String())),
 			hx.Patch(
 				fmt.Sprintf(
 					routes.HXOrgMembershipsUpdate,
-					identity.OrgSlug,
+					ident.OrgSlug,
 					membership.Membership.ID,
 				),
 			),
 			hx.Swap("none"),
 			h.Class("space-y-4"),
-			ui.Input("First Name",
-				h.AutoFocus(),
-				h.Placeholder("John"),
-				h.AutoComplete("off"),
-				h.Value(membership.Membership.FirstName),
-				h.Name("FirstName"),
+			ui.Input(ui.InputParams{
+				Label:        "First Name",
+				Name:         "FirstName",
+				Value:        membership.Membership.FirstName,
+				Placeholder:  "John",
+				AutoFocus:    true,
+				AutoComplete: "off",
+			}),
+			ui.Input(ui.InputParams{
+				Label:        "Last Name",
+				Name:         "LastName",
+				Value:        membership.Membership.LastName,
+				Placeholder:  "Doe",
+				AutoComplete: "off",
+			}),
+			ui.Input(ui.InputParams{
+				Label:        "Email",
+				Name:         "Email",
+				Value:        membership.User.Email,
+				Placeholder:  "john.doe@gmail.com",
+				AutoComplete: "off",
+				Disabled:     true,
+			}),
+			ui.Select(ui.SelectParams{
+				XModel:      "role",
+				Label:       "Role",
+				Name:        "role",
+				Value:       membership.Membership.Role.String(),
+				Placeholder: "Select a role",
+				Options: []ui.SelectOption{
+					{
+						Value: "owner",
+						Text:  "Owner",
+					},
+					{
+						Value: "admin",
+						Text:  "Admin",
+					},
+					{
+						Value: "member",
+						Text:  "Member",
+					},
+				},
+			}),
+			h.Template(
+				x.If("role === 'member'"),
+				h.Div(
+					h.Class("grid grid-cols-2 gap-4"),
+					h.Div(
+						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Read",
+							Name:         "Permissions",
+							Value:        permissions.MembershipRead.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Create",
+							Name:         "Permissions",
+							Value:        permissions.MembershipCreate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Update",
+							Name:         "Permissions",
+							Value:        permissions.MembershipUpdate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Delete",
+							Name:         "Permissions",
+							Value:        permissions.MembershipDelete.String(),
+							AutoComplete: "off",
+						}),
+					),
+					h.Div(
+						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Read Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelRead.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Create Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelCreate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Update Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelUpdate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Delete Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelDelete.String(),
+							AutoComplete: "off",
+						}),
+					),
+				),
 			),
-			ui.Input("Last Name",
-				h.Placeholder("Doe"),
-				h.AutoComplete("off"),
-				h.Value(membership.Membership.LastName),
-				h.Name("LastName"),
-			),
-			ui.Input("Email",
-				h.Placeholder("john.doe@gmail.com"),
-				h.AutoComplete("off"),
-				h.Value(membership.User.Email),
-				h.Name("Email"),
-				h.Disabled(),
-			),
-			// TODO(jozekuhar): role
-			// TODO(jozekuhar): permissions
 			h.Div(
 				h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
 				h.Button(
@@ -334,7 +398,9 @@ func (v *memberships) MembershipUpdateFormModal(
 	)
 }
 
-func (v *memberships) InvitationCreateFormModal(identity authz.Identity) g.Node {
+func (v *memberships) InvitationCreateFormModal(
+	ident identity.Identity,
+) g.Node {
 	return v.layout.modal.fragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
@@ -349,29 +415,30 @@ func (v *memberships) InvitationCreateFormModal(identity authz.Identity) g.Node 
 		),
 		h.Form(
 			x.Data(`{ role: null }`),
-			hx.Post(fmt.Sprintf(routes.HXOrgInvitationsCreate, identity.OrgSlug)),
+			hx.Post(fmt.Sprintf(routes.HXOrgInvitationsCreate, ident.OrgSlug)),
 			hx.Swap("none"),
 			h.Class("space-y-4"),
-			ui.Input("First Name",
-				h.AutoFocus(),
-				h.Placeholder("John"),
-				h.AutoComplete("off"),
-				h.Value(""),
-				h.Name("FirstName"),
-			),
-			ui.Input("Last Name",
-				h.Placeholder("Doe"),
-				h.AutoComplete("off"),
-				h.Value(""),
-				h.Name("LastName"),
-			),
-			ui.Input("Email",
-				h.Placeholder("john.doe@gmail.com"),
-				h.AutoComplete("off"),
-				h.Name("Email"),
-			),
-			// TODO(jozekuhar): role
+			ui.Input(ui.InputParams{
+				Label:        "First Name",
+				Name:         "FirstName",
+				Placeholder:  "John",
+				AutoFocus:    true,
+				AutoComplete: "off",
+			}),
+			ui.Input(ui.InputParams{
+				Label:        "Last Name",
+				Name:         "LastName",
+				Placeholder:  "Doe",
+				AutoComplete: "off",
+			}),
+			ui.Input(ui.InputParams{
+				Label:        "Email",
+				Name:         "Email",
+				Placeholder:  "john.doe@gmail.com",
+				AutoComplete: "off",
+			}),
 			ui.Select(ui.SelectParams{
+				Name:        "Role",
 				Label:       "Role",
 				Placeholder: "Select a role",
 				XModel:      "role",
@@ -390,8 +457,66 @@ func (v *memberships) InvitationCreateFormModal(identity authz.Identity) g.Node 
 					},
 				},
 			}),
-			ui.Checkbox(),
-			// TODO(jozekuhar): permissions
+			h.Template(
+				x.If("role === 'member'"),
+				h.Div(
+					h.Class("grid grid-cols-2 gap-4"),
+					h.Div(
+						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Read",
+							Name:         "Permissions",
+							Value:        permissions.MembershipRead.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Create",
+							Name:         "Permissions",
+							Value:        permissions.MembershipCreate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Update",
+							Name:         "Permissions",
+							Value:        permissions.MembershipUpdate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Membership Delete",
+							Name:         "Permissions",
+							Value:        permissions.MembershipDelete.String(),
+							AutoComplete: "off",
+						}),
+					),
+					h.Div(
+						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Read Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelRead.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Create Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelCreate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Update Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelUpdate.String(),
+							AutoComplete: "off",
+						}),
+						ui.Checkbox(ui.CheckboxParams{
+							Label:        "Delete Channels",
+							Name:         "Permissions",
+							Value:        permissions.ChannelDelete.String(),
+							AutoComplete: "off",
+						}),
+					),
+				),
+			),
 			h.Div(
 				h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
 				h.Button(
