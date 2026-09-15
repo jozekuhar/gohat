@@ -1,4 +1,4 @@
-package view
+package components
 
 import (
 	"fmt"
@@ -11,13 +11,7 @@ import (
 
 const idToastPortal = "toast-portal"
 
-type Toast struct{}
-
-func NewToast() *Toast {
-	return &Toast{}
-}
-
-func (v *Toast) container() g.Node {
+func toastContainer() g.Node {
 	return h.Div(
 		h.ID(idToastPortal),
 		h.Class(
@@ -28,14 +22,14 @@ func (v *Toast) container() g.Node {
 	)
 }
 
-func (v *Toast) Fragment(text string) g.Node {
+func ToastFragment(text string) g.Node {
 	return g.El(
 		"hx-partial",
 		hx.Target(fmt.Sprintf("#%s", idToastPortal)),
 		hx.Swap("append"),
 		h.Div(
-			x.Cloak(),
 			x.Data("toast"),
+			x.Cloak(),
 			x.Show("show"),
 			x.Transition(".duration.500ms"),
 			h.Class("flex gap-4 bg-background w-fit rounded-lg border p-6 shadow-lg"),

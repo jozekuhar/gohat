@@ -59,15 +59,19 @@ func (s *Service) ListActiveOrganizations(
 	return s.tenantRepo.ListActiveOrganizations(ctx, userID)
 }
 
+type RegisterOrganizationParams struct {
+	UserID    uuid.UUID
+	OrgName   string
+	OrgSlug   string
+	FirstName string
+	LastName  string
+}
+
 func (s *Service) RegisterOrganization(
 	ctx context.Context,
-	userID uuid.UUID,
-	orgName string,
-	orgSlug string,
-	firstName string,
-	lastName string,
+	params RegisterOrganizationParams,
 ) (db.Organization, error) {
-	activeOrgs, err := s.tenantRepo.ListActiveOrganizations(ctx, userID)
+	activeOrgs, err := s.tenantRepo.ListActiveOrganizations(ctx, params.UserID)
 	if err != nil {
 		return db.Organization{}, fmt.Errorf(
 			"listing organization memberships for user: %w",
@@ -82,8 +86,8 @@ func (s *Service) RegisterOrganization(
 	err = pgx.BeginFunc(ctx, s.tenantRepo.Pool(), func(tx pgx.Tx) error {
 		organization, err = s.tenantRepo.CreateOrganization(ctx, tx, db.CreateOrganizationParams{
 			ID:   uuid.NewV7(),
-			Name: orgName,
-			Slug: slug.Make(orgSlug),
+			Name: params.OrgName,
+			Slug: slug.Make(params.OrgSlug),
 		})
 		if err != nil {
 			return fmt.Errorf("creating organization: %w", err)
@@ -92,9 +96,9 @@ func (s *Service) RegisterOrganization(
 		_, err = s.tenantRepo.CreateMembership(ctx, tx, db.CreateMembershipParams{
 			ID:             uuid.NewV7(),
 			OrganizationID: organization.ID,
-			UserID:         userID,
-			FirstName:      firstName,
-			LastName:       lastName,
+			UserID:         params.UserID,
+			FirstName:      params.FirstName,
+			LastName:       params.LastName,
 			Role:           permissions.RoleOwner,
 			Permissions:    []permissions.MembershipPermission{},
 			Status:         db.MemberStatusActive,

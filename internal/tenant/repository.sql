@@ -54,8 +54,7 @@ SELECT EXISTS (
 
 -- name: UpdateMembership :one
 UPDATE memberships
-SET 
-    first_name = COALESCE(sqlc.narg('first_name'), first_name),
+SET first_name = COALESCE(sqlc.narg('first_name'), first_name),
     last_name = COALESCE(sqlc.narg('last_name'), last_name),
     updated_at = NOW()
 WHERE organization_id = @organization_id

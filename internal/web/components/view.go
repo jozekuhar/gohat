@@ -1,4 +1,4 @@
-package view
+package components
 
 import (
 	"encoding/json"
@@ -76,35 +76,11 @@ func favicons() g.Node {
 		),
 		h.Meta(
 			h.Name("apple-mobile-web-app-title"),
-			h.Content("Gohat"),
+			h.Content("Mimokocke"),
 		),
 		h.Link(
 			h.Rel("manifest"),
 			h.Href("/static/favicon/site.webmanifest"),
 		),
-	}
-}
-
-type View struct {
-	Layout      *Layout
-	Toast       *Toast
-	Auth        *auth
-	Channel     *channel
-	Dashboard   *dashboard
-	Memberships *memberships
-}
-
-func NewView() *View {
-	toast := NewToast()
-	modal := newModal()
-	layout := NewLayout()
-
-	return &View{
-		Layout:      layout,
-		Toast:       toast,
-		Auth:        newAuth(layout),
-		Channel:     newChannel(layout, modal),
-		Dashboard:   newDashboard(layout),
-		Memberships: newMemberships(layout),
 	}
 }

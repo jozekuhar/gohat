@@ -1,4 +1,4 @@
-package view
+package components
 
 import (
 	"fmt"
@@ -10,22 +10,22 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-const idModalPortal = "modal-portal"
+const (
+	EventModalClose = "close-modal"
+	idModalPortal   = "modal-portal"
+)
 
-type modal struct{}
-
-func newModal() *modal {
-	return &modal{}
-}
-
-func (v *modal) container() g.Node {
+func modalContainer() g.Node {
 	return h.Div(
+		x.Data(""),
+		x.Cloak(),
+		x.On(EventModalClose, "$el.innerHTML = ''"),
 		h.Class("z-100"),
 		h.ID(idModalPortal),
 	)
 }
 
-func (v *modal) fragment(nodes ...g.Node) g.Node {
+func ModalFragment(nodes ...g.Node) g.Node {
 	titleID := "modal-title"
 
 	return g.El(
@@ -33,8 +33,8 @@ func (v *modal) fragment(nodes ...g.Node) g.Node {
 		hx.Swap("innerHTML"),
 		hx.Target(fmt.Sprintf("#%s", idModalPortal)),
 		h.Div(
-			x.Cloak(),
 			x.Data("modal"),
+			x.Cloak(),
 			x.Show("show"),
 			x.On("keydown.escape.window.prevent.stop", "destroy()"),
 			h.Style("display: none"),

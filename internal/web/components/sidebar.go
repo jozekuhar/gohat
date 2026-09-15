@@ -1,4 +1,4 @@
-package view
+package components
 
 import (
 	"fmt"
@@ -14,84 +14,7 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-const (
-	idSidebarPopoverItems = "sidebar_popover_items"
-)
-
-type Layout struct {
-	toast *Toast
-	modal *modal
-}
-
-func NewLayout() *Layout {
-	return &Layout{
-		toast: NewToast(),
-		modal: newModal(),
-	}
-}
-
-func (v *Layout) blank(children ...g.Node) g.Node {
-	return v.base(
-		g.Map(children, func(node g.Node) g.Node {
-			return node
-		}),
-	)
-}
-
-func (v *Layout) app(ident identity.Identity, children ...g.Node) g.Node {
-	return v.base(
-		h.Div(
-			x.Cloak(),
-			x.Data(`{ sidebarOpen: false }`),
-			h.Class("flex flex-1 flex-col"),
-			h.Div(
-				h.Class("flex min-h-svh w-full"),
-				v.sidebar(ident),
-				v.content(children...),
-			),
-		),
-	)
-}
-
-func (v *Layout) base(children ...g.Node) g.Node {
-	return c.HTML5(c.HTML5Props{
-		Title:       "",
-		Description: "",
-		Language:    "en",
-		Head: g.Group{
-			favicons(),
-			g.Map(getCSSPaths("view"), func(path string) g.Node {
-				return h.Link(h.Rel("stylesheet"), h.Href(path))
-			}),
-			// TODO(jozekuhar): fix fonts (all because there are lot of fonts in view.css)
-			g.Raw(`
-				<link rel="preconnect" href="https://fonts.googleapis.com">
-				<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-				<link href="https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,100..900;1,100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
-			`),
-		},
-		Body: g.Group{
-			h.Class("antialiased"),
-			g.Map(children, func(node g.Node) g.Node {
-				return node
-			}),
-			v.modal.container(),
-			v.toast.container(),
-			h.Script(h.Type("module"), h.Src(getAssetPath("view"))),
-		},
-		HTMLAttrs: g.Group{
-			x.Cloak(),
-			x.Data(`{ darkMode: localStorage.getItem('theme') === 'dark' }`),
-			x.Init(
-				`$watch('darkMode', value => localStorage.setItem('theme', value ? 'dark' : 'light'))`,
-			),
-			x.Bind("class", `darkMode && "dark"`),
-			h.Class("font-sans"),
-		},
-	})
-}
-
-func (v *Layout) sidebar(ident identity.Identity) g.Node {
+func sidebar(ident identity.Identity) g.Node {
 	return h.Div(
 		h.Class("relative"),
 		h.Div(
@@ -130,17 +53,17 @@ func (v *Layout) sidebar(ident identity.Identity) g.Node {
 				},
 				h.Div(
 					h.Class("bg-sidebar flex flex-col h-full w-full"),
-					v.sidebarHeader(ident),
-					g.If(ident.OrgSlug == "", v.sidebarContentEmpty()),
-					g.If(ident.OrgSlug != "", v.sidebarContent(ident)),
-					v.sidebarFooter(ident),
+					sidebarHeader(ident),
+					g.If(ident.OrgSlug == "", sidebarContentEmpty()),
+					g.If(ident.OrgSlug != "", sidebarContent(ident)),
+					sidebarFooter(ident),
 				),
 			),
 		),
 	)
 }
 
-func (v *Layout) sidebarHeader(ident identity.Identity) g.Node {
+func sidebarHeader(ident identity.Identity) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -203,11 +126,11 @@ func (v *Layout) sidebarHeader(ident identity.Identity) g.Node {
 				),
 			),
 		),
-		v.sidebarHeaderPopover(),
+		sidebarHeaderPopover(),
 	)
 }
 
-func (v *Layout) sidebarHeaderPopover() g.Node {
+func sidebarHeaderPopover() g.Node {
 	return h.Div(
 		x.Show("menuOpen"),
 		x.On("click.outside", "menuOpen = false"),
@@ -250,7 +173,7 @@ func (v *Layout) sidebarHeaderPopover() g.Node {
 	)
 }
 
-func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
+func SidebarHeaderPopoverOrganizationsPartial(
 	organizations []db.Organization,
 ) g.Node {
 	return g.El(
@@ -299,8 +222,8 @@ func (v *Layout) SidebarHeaderPopoverOrganizationsPartial(
 	)
 }
 
-func (v *Layout) OrganizationCreateFormModal() g.Node {
-	return v.modal.fragment(
+func OrganizationCreateFormModal() g.Node {
+	return ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
 			h.H2(
@@ -366,13 +289,13 @@ func (v *Layout) OrganizationCreateFormModal() g.Node {
 	)
 }
 
-func (v *Layout) sidebarContentEmpty() g.Node {
+func sidebarContentEmpty() g.Node {
 	return h.Div(
 		h.Class("flex min-h-0 flex-1 flex-col gap-2 overflow-auto"),
 	)
 }
 
-func (v *Layout) sidebarContent(ident identity.Identity) g.Node {
+func sidebarContent(ident identity.Identity) g.Node {
 	return h.Div(
 		h.Class("flex min-h-0 flex-1 flex-col gap-2 overflow-auto"),
 		// Group
@@ -450,7 +373,7 @@ func (v *Layout) sidebarContent(ident identity.Identity) g.Node {
 	)
 }
 
-func (v *Layout) sidebarFooter(ident identity.Identity) g.Node {
+func sidebarFooter(ident identity.Identity) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -502,11 +425,11 @@ func (v *Layout) sidebarFooter(ident identity.Identity) g.Node {
 				),
 			),
 		),
-		v.sidebarFooterPopover(ident),
+		sidebarFooterPopover(ident),
 	)
 }
 
-func (v *Layout) sidebarFooterPopover(ident identity.Identity) g.Node {
+func sidebarFooterPopover(ident identity.Identity) g.Node {
 	type menuItem struct {
 		href string
 		svg  string
@@ -596,62 +519,6 @@ func (v *Layout) sidebarFooterPopover(ident identity.Identity) g.Node {
 				`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out" aria-hidden="true"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>`,
 			),
 			g.Text("Logout"),
-		),
-	)
-}
-
-func (v *Layout) content(children ...g.Node) g.Node {
-	return h.Div(
-		h.Class("flex h-full w-full min-w-0 flex-col"),
-		v.contentHeader(),
-		g.Map(children, func(node g.Node) g.Node {
-			return node
-		}),
-	)
-}
-
-func (v *Layout) contentHeader() g.Node {
-	return h.Header(
-		h.Class(
-			"bg-background grid w-full min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b px-4 py-4 sm:gap-3 sm:px-6",
-		),
-		h.Button(
-			x.On("click", `sidebarOpen = !sidebarOpen; console.log(sidebarOpen)`),
-			c.Classes{
-				"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground size-8 shrink-0": true,
-				"md:invisible": true,
-			},
-			g.Raw(
-				`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-panel-left" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></svg>`,
-			),
-			h.Span(
-				h.Class("sr-only"),
-				g.Text("Toggle Sidebar"),
-			),
-		),
-		h.Div(
-			h.Class("min-w-0"),
-			h.H1(
-				h.Class("truncate text-base font-medium"),
-				g.Text(""),
-			),
-		),
-		h.Button(
-			x.On("click", "darkMode = !darkMode; console.log(darkMode)"),
-			h.Class(
-				"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground size-9 scale-100 rounded-lg",
-			),
-			h.Type("button"),
-			g.Raw(
-				`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-sun size-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"></path><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"></path></svg>`,
-			),
-			g.Raw(
-				`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-moon absolute size-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008"></path></svg>`,
-			),
-			h.Span(
-				h.Class("sr-only"),
-				g.Text("Toggle theme"),
-			),
 		),
 	)
 }

@@ -1,7 +1,8 @@
-package view
+package auth
 
 import (
 	"mimokocke/internal/shared/routes"
+	"mimokocke/internal/web/components"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -10,18 +11,8 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-type auth struct {
-	layout *Layout
-}
-
-func newAuth(layout *Layout) *auth {
-	return &auth{
-		layout: layout,
-	}
-}
-
-func (v *auth) LoginPage() g.Node {
-	return v.layout.blank(
+func loginPage() g.Node {
+	return components.BlankLayout(
 		h.Div(
 			h.Class(
 				"bg-muted container grid h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",
@@ -129,6 +120,7 @@ func (v *auth) LoginPage() g.Node {
 									),
 									h.Div(
 										x.Data(`{showPassword: false}`),
+										x.Cloak(),
 										h.Class("relative rounded-md"),
 										h.Input(
 											x.Bind("type", `showPassword ? "text" : "password"`),
@@ -288,8 +280,8 @@ func (v *auth) LoginPage() g.Node {
 	)
 }
 
-func (v *auth) RegisterPage() g.Node {
-	return v.layout.blank(
+func registerPage() g.Node {
+	return components.BlankLayout(
 		h.Div(
 			h.Class(
 				"bg-muted container grid h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",
@@ -393,6 +385,7 @@ func (v *auth) RegisterPage() g.Node {
 									),
 									h.Div(
 										x.Data(`{showPassword: false}`),
+										x.Cloak(),
 										h.Class("relative rounded-md"),
 										h.Input(
 											x.Bind("type", `showPassword ? "text" : "password"`),
@@ -485,6 +478,7 @@ func (v *auth) RegisterPage() g.Node {
 									),
 									h.Div(
 										x.Data(`{showPassword: false}`),
+										x.Cloak(),
 										h.Class("relative rounded-md"),
 										h.Input(
 											x.Bind("type", `showPassword ? "text" : "password"`),

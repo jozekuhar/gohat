@@ -37,7 +37,7 @@ func (m *authMiddleware) RequireGuest(handler http.Handler) http.Handler {
 			return
 		}
 
-		http.Redirect(w, r, routes.Root, http.StatusSeeOther)
+		http.Redirect(w, r, routes.AppRoot, http.StatusSeeOther)
 	})
 }
 

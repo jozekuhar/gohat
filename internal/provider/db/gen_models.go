@@ -26,7 +26,7 @@ type Channel struct {
 	OrganizationID uuid.UUID
 	Provider       ChannelProvider
 	Name           string
-	Credentials    []byte
+	Credentials    string
 	Status         ChannelStatus
 	CreatedAt      time.Time
 	UpdatedAt      *time.Time

@@ -5,6 +5,7 @@ const (
 	PathMembershipID     = "membershipID"
 	PathInvitationToken  = "invitationToken"
 	PathInvitationID     = "invitationID"
+	PathChannelID        = "channelID"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 )
 
 const (
-	Root                         = "/"
+	AppRoot                      = "/"
 	Login                        = "/login"
 	HXLogin                      = "/hx/login"
 	Register                     = "/register"
@@ -41,8 +42,22 @@ const (
 	HXInvitationsDecline         = "/invitations/%s/decline"
 	HXInvitationsDeclinePath     = "/invitations/{" + PathInvitationToken + "}/decline"
 
-	OrgChannels             = "/%s/channels"
-	OrgChannelsPath         = "/{" + PathOrganizationSlug + "}/channels"
-	HXOrgChannelsCreate     = "/%s/channels/create"
-	HXOrgChannelsCreatePath = "/{" + PathOrganizationSlug + "}/channels/create"
+	OrgChannels                        = "/%s/channels"
+	OrgChannelsPath                    = "/{" + PathOrganizationSlug + "}/channels"
+	HXOrgChannelsCreate                = "/%s/channels/create"
+	HXOrgChannelsCreatePath            = "/{" + PathOrganizationSlug + "}/channels/create"
+	HXOrgChannelsWooCommerceCreate     = "/%s/channels/woocommerce/create"
+	HXOrgChannelsWooCommerceCreatePath = "/{" + PathOrganizationSlug + "}/channels/woocommerce/create"
+	HXOrgChannelsShopifyCreate         = "/%s/channels/shopify/create"
+	HXOrgChannelsShopifyCreatePath     = "/{" + PathOrganizationSlug + "}/channels/shopify/create"
+	HXOrgChannelsWooCommerceTest       = "/%s/channels/woocommerce/test"
+	HXOrgChannelsWooCommerceTestPath   = "/{" + PathOrganizationSlug + "}/channels/woocommerce/test"
+	HXOrgChannelsShopifyTest           = "/%s/channels/shopify/test"
+	HXOrgChannelsShopifyTestPath       = "/{" + PathOrganizationSlug + "}/channels/shopify/test"
+	HXOrgChannelsUpdate                = "/%s/channels/%s/update"
+	HXOrgChannelsUpdatePath            = "/{" + PathOrganizationSlug + "}/channels/{" + PathChannelID + "}/update"
+	HXOrgChannelsDeactivate            = "/%s/channels/deactivate"
+	HXOrgChannelsDeactivatePath        = "/{" + PathOrganizationSlug + "}/channels/{" + PathChannelID + "}/deactivate"
+	HXOrgChannelsDelete                = "/%s/channels/%s/delete"
+	HXOrgChannelsDeletePath            = "/{" + PathOrganizationSlug + "}/channels/{" + PathChannelID + "}/delete"
 )

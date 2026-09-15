@@ -16,22 +16,19 @@ import (
 type tenantMiddleware struct {
 	logger    *slog.Logger
 	tenantSrv *tenant.Service
-	coreHdl   *handler.Core
 }
 
 func NewTenantMiddleware(
 	logger *slog.Logger,
 	tenantSrv *tenant.Service,
-	coreHdl *handler.Core,
 ) *tenantMiddleware {
 	return &tenantMiddleware{
 		logger:    logger,
 		tenantSrv: tenantSrv,
-		coreHdl:   coreHdl,
 	}
 }
 
-func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
+func (m *tenantMiddleware) RequireIdentity(hdl http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authCtx := auth.MustFromContext(r.Context())
 		orgSlug := r.PathValue(routes.PathOrganizationSlug)
@@ -39,7 +36,7 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 		membership, err := m.tenantSrv.GetActiveMembership(r.Context(), authCtx.UserID, orgSlug)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				m.coreHdl.GetNotFound(w, r)
+				handler.GetNotFound(w, r)
 				return
 			}
 			m.logger.Error("verifying membership", "err", err)
@@ -61,6 +58,6 @@ func (m *tenantMiddleware) RequireIdentity(handler http.Handler) http.Handler {
 		ctx := identity.WithContext(r.Context(), ident)
 		newR := r.WithContext(ctx)
 
-		handler.ServeHTTP(w, newR)
+		hdl.ServeHTTP(w, newR)
 	})
 }

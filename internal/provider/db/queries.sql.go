@@ -81,7 +81,7 @@ type CreateChannelParams struct {
 	OrganizationID uuid.UUID
 	Name           string
 	Provider       ChannelProvider
-	Credentials    []byte
+	Credentials    string
 	Status         ChannelStatus
 }
 
@@ -279,6 +279,22 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteChannel = `-- name: DeleteChannel :exec
+DELETE FROM channels
+WHERE organization_id = $1
+  AND id = $2
+`
+
+type DeleteChannelParams struct {
+	OrganizationID uuid.UUID
+	ChannelID      uuid.UUID
+}
+
+func (q *Queries) DeleteChannel(ctx context.Context, arg DeleteChannelParams) error {
+	_, err := q.db.Exec(ctx, deleteChannel, arg.OrganizationID, arg.ChannelID)
+	return err
+}
+
 const deleteSession = `-- name: DeleteSession :exec
 DELETE FROM sessions
 WHERE id = $1
@@ -388,6 +404,34 @@ func (q *Queries) GetAuthenticationByProvider(ctx context.Context, arg GetAuthen
 		&i.Provider,
 		&i.ProviderID,
 		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getChannel = `-- name: GetChannel :one
+SELECT id, organization_id, provider, name, credentials, status, created_at, updated_at
+FROM channels
+WHERE organization_id = $1
+  AND id = $2
+`
+
+type GetChannelParams struct {
+	OrganizationID uuid.UUID
+	ChannelID      uuid.UUID
+}
+
+func (q *Queries) GetChannel(ctx context.Context, arg GetChannelParams) (Channel, error) {
+	row := q.db.QueryRow(ctx, getChannel, arg.OrganizationID, arg.ChannelID)
+	var i Channel
+	err := row.Scan(
+		&i.ID,
+		&i.OrganizationID,
+		&i.Provider,
+		&i.Name,
+		&i.Credentials,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

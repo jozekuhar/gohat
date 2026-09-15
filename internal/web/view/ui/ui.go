@@ -20,6 +20,7 @@ type InputParams struct {
 	Disabled     bool
 	AutoFocus    bool
 	AutoComplete string
+	Form         string
 }
 
 func Input(params InputParams) g.Node {
@@ -45,6 +46,7 @@ func Input(params InputParams) g.Node {
 			g.If(params.Disabled, h.Disabled()),
 			g.If(params.AutoFocus, h.AutoFocus()),
 			g.If(params.AutoComplete != "", h.AutoComplete(params.AutoComplete)),
+			g.If(params.Form != "", h.FormAttr(params.Form)),
 		),
 	)
 }
@@ -69,6 +71,7 @@ func Select(params SelectParams) g.Node {
 
 	return h.Div(
 		x.Data(fmt.Sprintf(`{ value: null, options: %s }`, options)),
+		x.Cloak(),
 		x.Modelable("value"),
 		x.Model(params.XModel),
 		g.Attr("x-listbox"),

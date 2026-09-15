@@ -6,12 +6,6 @@ import (
 	"mimokocke"
 )
 
-type Static struct{}
-
-func NewStatic() *Static {
-	return &Static{}
-}
-
-func (v *Static) GetStatic(w http.ResponseWriter, r *http.Request) {
+func GetStatic(w http.ResponseWriter, r *http.Request) {
 	http.FileServerFS(mimokocke.Static).ServeHTTP(w, r)
 }

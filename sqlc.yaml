@@ -2,9 +2,9 @@ version: "2"
 sql:
     - engine: "postgresql"
       queries:
-          - "./internal/auth/queries.sql"
-          - "./internal/channel/queries.sql"
-          - "./internal/tenant/queries.sql"
+          - "./internal/auth/repository.sql"
+          - "./internal/channel/repository.sql"
+          - "./internal/tenant/repository.sql"
       schema: "migrations/"
       gen:
           go:

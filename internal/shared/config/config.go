@@ -12,6 +12,7 @@ type Config struct {
 	Debug              bool
 	Port               string
 	Host               string
+	MasterKey          string
 	DatabaseURL        string
 	GoogleClientID     string
 	GoogleClientSecret string
@@ -35,6 +36,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if cfg.Host, err = loadStringEnv("HOST"); err != nil {
+		return nil, err
+	}
+
+	if cfg.MasterKey, err = loadStringEnv("MASTER_KEY"); err != nil {
 		return nil, err
 	}
 
