@@ -5,17 +5,17 @@ import (
 	"log"
 	"net/http"
 
-	"mimokocke/internal/auth"
-	"mimokocke/internal/channel"
-	"mimokocke/internal/middleware"
+	"mimokocke/internal/domain/auth"
+	"mimokocke/internal/domain/channel"
+	"mimokocke/internal/domain/tenant"
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/logger"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/tenant"
 	"mimokocke/internal/web/components"
 	"mimokocke/internal/web/handler"
+	"mimokocke/internal/web/middleware"
 
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/form"
@@ -81,81 +81,75 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(chimiddleware.Logger)
 
-		r.Group(func(r chi.Router) {
-			// Core
-			r.Get(routes.TermsOfService, handler.GetTermsOfService)
-			r.Get(routes.PrivacyPolicy, handler.GetPrivacyPolicy)
+		// Core
+		r.Get(routes.TermsOfService, handler.GetTermsOfService)
+		r.Get(routes.PrivacyPolicy, handler.GetPrivacyPolicy)
 
-			// Auth
-			r.Get(routes.CallbackSignInGoogle, authHdl.GetSignInGoogleCallback)
-		})
+		// Auth
+		r.Get(routes.CallbackSignInGoogle, authHdl.GetSignInGoogleCallback)
+	})
 
-		r.Group(func(r chi.Router) {
-			r.Use(authMdw.OptionalAuth)
+	r.Group(func(r chi.Router) {
+		r.Use(chimiddleware.Logger)
+		r.Use(authMdw.OptionalAuth)
 
-			// Invitations
-			r.Get(routes.InvitationsJoinPath, tenantHdl.GetShowInvitation)
-		})
+		// Invitations
+		r.Get(routes.InvitationsJoinPath, tenantHdl.GetShowInvitation)
+	})
 
-		r.Group(func(r chi.Router) {
-			r.Use(authMdw.RequireGuest)
+	r.Group(func(r chi.Router) {
+		r.Use(chimiddleware.Logger)
+		r.Use(authMdw.RequireGuest)
 
-			r.Get(routes.Login, authHdl.GetLogin)
-			r.Post(routes.HXLogin, authHdl.PostLogin)
-			r.Get(routes.Register, authHdl.GetRegister)
-			r.Post(routes.HXRegister, authHdl.PostRegister)
-			r.Get(routes.HXSignInGoogle, authHdl.GetSignInWithGoogle)
-		})
+		r.Get(routes.Login, authHdl.GetLogin)
+		r.Post(routes.HXLogin, authHdl.PostLogin)
+		r.Get(routes.Register, authHdl.GetRegister)
+		r.Post(routes.HXRegister, authHdl.PostRegister)
+		r.Get(routes.HXSignInGoogle, authHdl.GetSignInWithGoogle)
+	})
 
-		r.Group(func(r chi.Router) {
-			r.Use(authMdw.RequireAuth)
+	r.Group(func(r chi.Router) {
+		r.Use(chimiddleware.Logger)
+		r.Use(authMdw.RequireAuth)
 
-			// App
-			r.Post(routes.HXLogout, authHdl.PostLogout)
-			r.Get(routes.AppRoot, tenantHdl.GetAppRoot)
+		// App
+		r.Post(routes.HXLogout, authHdl.PostLogout)
+		r.Get(routes.AppRoot, tenantHdl.GetAppRoot)
 
-			// Sidebar
-			r.Get(routes.HXSidebarOrganizations, tenantHdl.GetSidebarOrganizationsPartial)
-			r.Get(routes.HXSidebarOrganizationsCreate, tenantHdl.GetCreateOrganizationFormModal)
-			r.Post(routes.HXSidebarOrganizationsCreate, tenantHdl.PostCreateOrganization)
+		// Sidebar
+		r.Get(routes.HXSidebarOrganizations, tenantHdl.GetSidebarOrganizationsPartial)
+		r.Get(routes.HXSidebarOrganizationsCreate, tenantHdl.GetCreateOrganizationFormModal)
+		r.Post(routes.HXSidebarOrganizationsCreate, tenantHdl.PostCreateOrganization)
 
-			// Invitations
-			r.Post(routes.HXInvitationsAcceptPath, tenantHdl.PostAcceptInvitation)
-			r.Post(routes.HXInvitationsDeclinePath, tenantHdl.PostDeclineInvitation)
-		})
+		// Invitations
+		r.Post(routes.HXInvitationsAcceptPath, tenantHdl.PostAcceptInvitation)
+		r.Post(routes.HXInvitationsDeclinePath, tenantHdl.PostDeclineInvitation)
+	})
 
-		r.Group(func(r chi.Router) {
-			r.Use(authMdw.RequireAuth)
-			r.Use(tenantMdw.RequireIdentity)
+	r.Group(func(r chi.Router) {
+		r.Use(chimiddleware.Logger)
+		r.Use(authMdw.RequireAuth)
+		r.Use(tenantMdw.RequireIdentity)
 
-			// App
-			r.Get(routes.OrgRootPath, tenantHdl.GetOrgRoot)
-			r.Get(routes.OrgDashboardPath, tenantHdl.GetDashboard)
+		// App
+		r.Get(routes.OrgRootPath, tenantHdl.GetOrgRoot)
+		r.Get(routes.OrgDashboardPath, tenantHdl.GetDashboard)
 
-			// Memberships
-			r.Get(routes.OrgMembershipsPath, tenantHdl.GetMemberships)
-			r.Get(routes.HXOrgMembershipsUpdatePath, tenantHdl.GetUpdateMembershipFormModal)
-			r.Patch(routes.HXOrgMembershipsUpdatePath, tenantHdl.PatchUpdateMembership)
-			r.Get(routes.HXOrgInvitationsCreatePath, tenantHdl.GetCreateInvitationFormModal)
-			r.Post(routes.HXOrgInvitationsCreatePath, tenantHdl.PostCreateInvitation)
+		// Memberships
+		r.Get(routes.OrgMembershipsPath, tenantHdl.GetMemberships)
+		r.Get(routes.HXOrgMembershipsUpdatePath, tenantHdl.GetUpdateMembershipFormModal)
+		r.Patch(routes.HXOrgMembershipsUpdatePath, tenantHdl.PatchUpdateMembership)
+		r.Get(routes.HXOrgInvitationsCreatePath, tenantHdl.GetCreateInvitationFormModal)
+		r.Post(routes.HXOrgInvitationsCreatePath, tenantHdl.PostCreateInvitation)
 
-			// Channels
-			r.Get(routes.OrgChannelsPath, channelHdl.GetChannels)
-			r.Get(routes.HXOrgChannelsCreatePath, channelHdl.GetCreateChannelFormModal)
-			r.Post(
-				routes.HXOrgChannelsWooCommerceCreatePath,
-				channelHdl.PostCreateWooCommerceChannel,
-			)
-			// r.Post(routes.HXOrgChannelsShopifyCreatePath, channelHdl.PostCreateShopifyChannel)
-			r.Post(
-				routes.HXOrgChannelsWooCommerceTestPath,
-				channelHdl.PostTestWooCommerceChannel,
-			)
-			// r.Post(routes.HXOrgChannelsShopifyTestPath, channelHdl.PostTestShopifyChannel)
-			r.Get(routes.HXOrgChannelsUpdatePath, channelHdl.GetUpdateChannelModalForm)
-			r.Post(routes.HXOrgChannelsDeactivatePath, channelHdl.PostDeactivateChannel)
-			r.Delete(routes.HXOrgChannelsDeletePath, channelHdl.DeleteRemoveChannel)
-		})
+		// Channels
+		r.Get(routes.OrgChannelsPath, channelHdl.GetChannels)
+		r.Get(routes.HXOrgChannelsCreatePath, channelHdl.GetCreateChannelFormModal)
+		r.Post(routes.HXOrgChannelsWooCommerceCreatePath, channelHdl.PostCreateWooCommerceChannel)
+		r.Post(routes.HXOrgChannelsWooCommerceTestPath, channelHdl.PostTestWooCommerceChannel)
+		r.Get(routes.HXOrgChannelsUpdatePath, channelHdl.GetUpdateChannelModalForm)
+		r.Post(routes.HXOrgChannelsDeactivatePath, channelHdl.PostDeactivateChannel)
+		r.Delete(routes.HXOrgChannelsDeletePath, channelHdl.DeleteRemoveChannel)
 	})
 
 	if err := http.ListenAndServe(cfg.Port, r); err != nil {

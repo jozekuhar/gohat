@@ -8,7 +8,6 @@ import (
 	"mimokocke/internal/shared/permissions"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/web/components"
-	"mimokocke/internal/web/view/ui"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -42,7 +41,7 @@ func appPage(orgs []db.Organization) g.Node {
 	)
 }
 
-func dashboardPage(ident identity.Identity) g.Node {
+func dashboardPage(ident identity.IdentityCtx) g.Node {
 	return components.AppLayout(
 		ident,
 		h.Main(
@@ -51,7 +50,7 @@ func dashboardPage(ident identity.Identity) g.Node {
 	)
 }
 
-func membershipsPage(ident identity.Identity, data MembershipsOverview) g.Node {
+func membershipsPage(ident identity.IdentityCtx, data MembershipsOverview) g.Node {
 	return components.AppLayout(
 		ident,
 		h.Div(
@@ -332,7 +331,7 @@ func membershipItem(orgSlug string, member db.Membership, user db.User) g.Node {
 	)
 }
 
-func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipRow) g.Node {
+func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembershipRow) g.Node {
 	return components.ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
@@ -359,7 +358,7 @@ func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipR
 			hx.Swap("outerHTML"),
 			hx.Target(fmt.Sprintf("#item-%s", member.Membership.ID)),
 			h.Class("space-y-4"),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "First Name",
 				Name:         "FirstName",
 				Value:        member.Membership.FirstName,
@@ -367,14 +366,14 @@ func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipR
 				AutoFocus:    true,
 				AutoComplete: "off",
 			}),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "Last Name",
 				Name:         "LastName",
 				Value:        member.Membership.LastName,
 				Placeholder:  "Doe",
 				AutoComplete: "off",
 			}),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "Email",
 				Name:         "Email",
 				Value:        member.User.Email,
@@ -382,13 +381,13 @@ func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipR
 				AutoComplete: "off",
 				Disabled:     true,
 			}),
-			ui.Select(ui.SelectParams{
+			components.Select(components.SelectParams{
 				XModel:      "role",
 				Label:       "Role",
 				Name:        "role",
 				Value:       member.Membership.Role.String(),
 				Placeholder: "Select a role",
-				Options: []ui.SelectOption{
+				Options: []components.SelectOption{
 					{
 						Value: "owner",
 						Text:  "Owner",
@@ -409,25 +408,25 @@ func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipR
 					h.Class("grid grid-cols-2 gap-4"),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Read",
 							Name:         "Permissions",
 							Value:        permissions.MembershipRead.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Create",
 							Name:         "Permissions",
 							Value:        permissions.MembershipCreate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Update",
 							Name:         "Permissions",
 							Value:        permissions.MembershipUpdate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Delete",
 							Name:         "Permissions",
 							Value:        permissions.MembershipDelete.String(),
@@ -436,25 +435,25 @@ func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipR
 					),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Read Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelRead.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Create Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelCreate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Update Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelUpdate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Delete Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelDelete.String(),
@@ -477,7 +476,7 @@ func membershipUpdateFormModal(ident identity.Identity, member db.GetMembershipR
 	)
 }
 
-func invitationCreateFormModal(ident identity.Identity) g.Node {
+func invitationCreateFormModal(ident identity.IdentityCtx) g.Node {
 	return components.ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
@@ -497,31 +496,31 @@ func invitationCreateFormModal(ident identity.Identity) g.Node {
 			hx.Swap("prepend"),
 			hx.Target("#invitations_list"),
 			h.Class("space-y-4"),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "First Name",
 				Name:         "FirstName",
 				Placeholder:  "John",
 				AutoFocus:    true,
 				AutoComplete: "off",
 			}),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "Last Name",
 				Name:         "LastName",
 				Placeholder:  "Doe",
 				AutoComplete: "off",
 			}),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "Email",
 				Name:         "Email",
 				Placeholder:  "john.doe@gmail.com",
 				AutoComplete: "off",
 			}),
-			ui.Select(ui.SelectParams{
+			components.Select(components.SelectParams{
 				Name:        "Role",
 				Label:       "Role",
 				Placeholder: "Select a role",
 				XModel:      "role",
-				Options: []ui.SelectOption{
+				Options: []components.SelectOption{
 					{
 						Value: "owner",
 						Text:  "Owner",
@@ -542,25 +541,25 @@ func invitationCreateFormModal(ident identity.Identity) g.Node {
 					h.Class("grid grid-cols-2 gap-4"),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Read",
 							Name:         "Permissions",
 							Value:        permissions.MembershipRead.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Create",
 							Name:         "Permissions",
 							Value:        permissions.MembershipCreate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Update",
 							Name:         "Permissions",
 							Value:        permissions.MembershipUpdate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Membership Delete",
 							Name:         "Permissions",
 							Value:        permissions.MembershipDelete.String(),
@@ -569,25 +568,25 @@ func invitationCreateFormModal(ident identity.Identity) g.Node {
 					),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Read Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelRead.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Create Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelCreate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Update Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelUpdate.String(),
 							AutoComplete: "off",
 						}),
-						ui.Checkbox(ui.CheckboxParams{
+						components.Checkbox(components.CheckboxParams{
 							Label:        "Delete Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelDelete.String(),

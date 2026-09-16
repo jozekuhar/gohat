@@ -4,7 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"mimokocke/internal/auth"
+	"mimokocke/internal/domain/auth"
+	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/web/cookie"
 )
@@ -57,7 +58,7 @@ func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := auth.WithContext(r.Context(), auth.AuthContext{
+		ctx := identity.WithAuth(r.Context(), identity.AuthCtx{
 			UserID:    s.UserID,
 			UserEmail: "peterpan@gmail.com", // todo
 		})
@@ -81,7 +82,7 @@ func (m *authMiddleware) OptionalAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		ctx := auth.WithContext(r.Context(), auth.AuthContext{
+		ctx := identity.WithAuth(r.Context(), identity.AuthCtx{
 			UserID:    s.UserID,
 			UserEmail: "peterpan@gmail.com", // todo
 		})

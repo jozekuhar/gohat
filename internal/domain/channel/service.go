@@ -29,7 +29,7 @@ func NewService(cfg *config.Config, channelRepo *repository) *Service {
 
 func (s *Service) GetChannelsOverview(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 ) ([]db.Channel, error) {
 	if !ident.HasPermission(permissions.ChannelRead) {
 		return nil, permissions.ErrDenied
@@ -53,7 +53,7 @@ type maskedShopifyCredentials struct{}
 
 func (s *Service) GetChannelDetails(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	channelID uuid.UUID,
 ) (ChannelDetails, error) {
 	if !ident.HasPermission(permissions.ChannelRead) {
@@ -152,7 +152,7 @@ type SaveWooCommerceChannelParams struct {
 
 func (s *Service) SaveWooCommerceChannel(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	params SaveWooCommerceChannelParams,
 ) (db.Channel, error) {
 	if !ident.HasPermission(permissions.ChannelCreate) {
@@ -191,7 +191,7 @@ func (s *Service) SaveWooCommerceChannel(
 
 func (s *Service) RemoveChannel(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	channelID uuid.UUID,
 ) error {
 	if !ident.HasPermission(permissions.ChannelDelete) {

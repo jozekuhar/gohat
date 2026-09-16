@@ -7,7 +7,6 @@ import (
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
 	"mimokocke/internal/web/components"
-	"mimokocke/internal/web/view/ui"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -15,7 +14,7 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-func channelsPage(ident identity.Identity, chns []db.Channel) g.Node {
+func channelsPage(ident identity.IdentityCtx, chns []db.Channel) g.Node {
 	return components.AppLayout(
 		ident,
 		h.Div(
@@ -134,7 +133,7 @@ func channelsPage(ident identity.Identity, chns []db.Channel) g.Node {
 	)
 }
 
-func channelItem(ident identity.Identity, chn db.Channel) g.Node {
+func channelItem(ident identity.IdentityCtx, chn db.Channel) g.Node {
 	channelNameMap := map[db.ChannelProvider]string{
 		db.ChannelProviderWooCommerce: "WooCommerce",
 		db.ChannelProviderShopify:     "Shopify",
@@ -173,7 +172,7 @@ func channelItem(ident identity.Identity, chn db.Channel) g.Node {
 	)
 }
 
-func createChannelFormModal(ident identity.Identity) g.Node {
+func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 	formID := "channel-form"
 
 	return components.ModalFragment(
@@ -192,7 +191,7 @@ func createChannelFormModal(ident identity.Identity) g.Node {
 			x.Data(`{ provider: null }`),
 			x.Cloak(),
 			h.Class("space-y-4"),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "Name",
 				Name:         "Name",
 				Placeholder:  "GLS Germany",
@@ -200,11 +199,11 @@ func createChannelFormModal(ident identity.Identity) g.Node {
 				AutoComplete: "off",
 				Form:         formID,
 			}),
-			ui.Select(ui.SelectParams{
+			components.Select(components.SelectParams{
 				XModel:      "provider",
 				Label:       "Provider",
 				Placeholder: "Select provider",
-				Options: []ui.SelectOption{
+				Options: []components.SelectOption{
 					{Value: "woocommerce", Text: "WooCommerce"},
 					{Value: "shopify", Text: "Shopify"},
 				},
@@ -215,17 +214,17 @@ func createChannelFormModal(ident identity.Identity) g.Node {
 					x.Init(`htmx.process($el)`),
 					h.ID(formID),
 					h.Class("space-y-4"),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "Store URL",
 						Name:         "StoreURL",
 						AutoComplete: "off",
 					}),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "Consumer Key",
 						Name:         "ConsumerKey",
 						AutoComplete: "off",
 					}),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "Consumer Secret",
 						Name:         "ConsumerSecret",
 						AutoComplete: "off",
@@ -264,7 +263,7 @@ func createChannelFormModal(ident identity.Identity) g.Node {
 					x.Init(`htmx.process($el)`),
 					h.ID(formID),
 					h.Class("space-y-4"),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "secret",
 						Name:         "secret",
 						AutoComplete: "off",
@@ -292,7 +291,7 @@ func createChannelFormModal(ident identity.Identity) g.Node {
 	)
 }
 
-func updateChannelFormModal(ident identity.Identity, chn ChannelDetails) g.Node {
+func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.Node {
 	formID := "channel_form"
 
 	return components.ModalFragment(
@@ -311,7 +310,7 @@ func updateChannelFormModal(ident identity.Identity, chn ChannelDetails) g.Node 
 			x.Data(fmt.Sprintf(`{ provider: %q }`, chn.Channel.Provider.String())),
 			x.Cloak(),
 			h.Class("space-y-4"),
-			ui.Input(ui.InputParams{
+			components.Input(components.InputParams{
 				Label:        "Name",
 				Name:         "Name",
 				Value:        chn.Channel.Name,
@@ -319,11 +318,11 @@ func updateChannelFormModal(ident identity.Identity, chn ChannelDetails) g.Node 
 				AutoComplete: "off",
 				Form:         formID,
 			}),
-			ui.Select(ui.SelectParams{
+			components.Select(components.SelectParams{
 				XModel:      "provider",
 				Label:       "Provider",
 				Placeholder: "Select provider",
-				Options: []ui.SelectOption{
+				Options: []components.SelectOption{
 					{Value: "woocommerce", Text: "WooCommerce"},
 					{Value: "shopify", Text: "Shopify"},
 				},
@@ -334,19 +333,19 @@ func updateChannelFormModal(ident identity.Identity, chn ChannelDetails) g.Node 
 					x.Init(`htmx.process($el)`),
 					h.ID(formID),
 					h.Class("space-y-4"),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "Store URL",
 						Name:         "StoreURL",
 						Value:        chn.MaskedWooCommerceCredentials.StoreURL,
 						AutoComplete: "off",
 					}),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "Consumer Key",
 						Name:         "ConsumerKey",
 						Value:        chn.MaskedWooCommerceCredentials.MaskedConsumerKey,
 						AutoComplete: "off",
 					}),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "Consumer Secret",
 						Name:         "ConsumerSecret",
 						Value:        chn.MaskedWooCommerceCredentials.MaskedConsumerSecret,
@@ -401,7 +400,7 @@ func updateChannelFormModal(ident identity.Identity, chn ChannelDetails) g.Node 
 					x.Init(`htmx.process($el)`),
 					h.ID(formID),
 					h.Class("space-y-4"),
-					ui.Input(ui.InputParams{
+					components.Input(components.InputParams{
 						Label:        "secret",
 						Name:         "secret",
 						AutoComplete: "off",

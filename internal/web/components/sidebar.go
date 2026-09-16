@@ -14,7 +14,7 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-func sidebar(ident identity.Identity) g.Node {
+func sidebar(ident identity.IdentityCtx) g.Node {
 	return h.Div(
 		h.Class("relative"),
 		h.Div(
@@ -63,7 +63,7 @@ func sidebar(ident identity.Identity) g.Node {
 	)
 }
 
-func sidebarHeader(ident identity.Identity) g.Node {
+func sidebarHeader(ident identity.IdentityCtx) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -295,7 +295,7 @@ func sidebarContentEmpty() g.Node {
 	)
 }
 
-func sidebarContent(ident identity.Identity) g.Node {
+func sidebarContent(ident identity.IdentityCtx) g.Node {
 	return h.Div(
 		h.Class("flex min-h-0 flex-1 flex-col gap-2 overflow-auto"),
 		// Group
@@ -373,7 +373,7 @@ func sidebarContent(ident identity.Identity) g.Node {
 	)
 }
 
-func sidebarFooter(ident identity.Identity) g.Node {
+func sidebarFooter(ident identity.IdentityCtx) g.Node {
 	return h.Div(
 		x.Data(`{ menuOpen: false }`),
 		x.Cloak(),
@@ -429,7 +429,7 @@ func sidebarFooter(ident identity.Identity) g.Node {
 	)
 }
 
-func sidebarFooterPopover(ident identity.Identity) g.Node {
+func sidebarFooterPopover(ident identity.IdentityCtx) g.Node {
 	type menuItem struct {
 		href string
 		svg  string

@@ -132,7 +132,7 @@ type MembershipsOverview struct {
 
 func (s *Service) GetMembershipsOverview(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 ) (MembershipsOverview, error) {
 	if !ident.HasPermission(permissions.MembershipRead) {
 		return MembershipsOverview{}, permissions.ErrDenied
@@ -156,7 +156,7 @@ func (s *Service) GetMembershipsOverview(
 
 func (s *Service) GetMembershipDetails(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	membershipID uuid.UUID,
 ) (db.GetMembershipRow, error) {
 	if !ident.HasPermission(permissions.MembershipRead) {
@@ -182,7 +182,7 @@ func (s *Service) UpdateMembership(ctx context.Context, m db.Membership) (db.Mem
 // CancelMembership cancels a membership.
 func (s *Service) CancelMembership(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	membershipID uuid.UUID,
 ) error {
 	membership, err := s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
@@ -222,7 +222,7 @@ type InviteUserParams struct {
 // InviteUser handles sending invitation to user to join organization.
 func (s *Service) InviteUser(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	params InviteUserParams,
 ) (db.Invitation, error) {
 	if !ident.HasPermission(permissions.MembershipCreate) {
@@ -298,7 +298,7 @@ func (s *Service) InviteUser(
 // CancelInvite cancels invite.
 func (s *Service) CancelInvite(
 	ctx context.Context,
-	ident identity.Identity,
+	ident identity.IdentityCtx,
 	invitationID uuid.UUID,
 ) error {
 	if !ident.HasPermission(permissions.MembershipDelete) {

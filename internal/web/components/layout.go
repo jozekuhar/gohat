@@ -21,7 +21,7 @@ func BlankLayout(children ...g.Node) g.Node {
 	)
 }
 
-func AppLayout(ident identity.Identity, children ...g.Node) g.Node {
+func AppLayout(ident identity.IdentityCtx, children ...g.Node) g.Node {
 	return baseLayout(
 		h.Div(
 			x.Data(`{ sidebarOpen: false }`),

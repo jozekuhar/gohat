@@ -30,7 +30,7 @@ func NewHandler(logger *slog.Logger, decoder *form.Decoder, srv *Service) *Handl
 }
 
 func (h *Handler) GetChannels(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	channels, err := h.srv.GetChannelsOverview(r.Context(), ident)
 	if err != nil {
@@ -47,7 +47,7 @@ func (h *Handler) GetChannels(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetCreateChannelFormModal(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	response.RenderStatus(w, createChannelFormModal(ident), http.StatusOK)
 }
@@ -56,7 +56,7 @@ func (h *Handler) PostCreateChannel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostCreateWooCommerceChannel(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	err := r.ParseForm()
 	if err != nil {
@@ -169,7 +169,7 @@ func (h *Handler) PostTestWooCommerceChannel(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *Handler) GetUpdateChannelModalForm(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	chnID, err := request.PathValueUUID(r, routes.PathChannelID)
 	if err != nil {
@@ -201,7 +201,7 @@ func (h *Handler) PostDeactivateChannel(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) DeleteRemoveChannel(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	channelID, err := request.PathValueUUID(r, routes.PathChannelID)
 	if err != nil {

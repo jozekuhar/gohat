@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"mimokocke/internal/auth"
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/permissions"
@@ -39,7 +38,7 @@ func NewHandler(
 }
 
 func (h *Handler) GetAppRoot(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustFromContext(r.Context())
+	authCtx := identity.MustAuthFromContext(r.Context())
 
 	orgs, err := h.srv.ListActiveOrganizations(r.Context(), authCtx.UserID)
 	if err != nil {
@@ -55,7 +54,7 @@ func (h *Handler) GetAppRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetSidebarOrganizationsPartial(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustFromContext(r.Context())
+	authCtx := identity.MustAuthFromContext(r.Context())
 
 	organizations, err := h.srv.ListActiveOrganizations(r.Context(), authCtx.UserID)
 	if err != nil {
@@ -75,7 +74,7 @@ func (h *Handler) GetCreateOrganizationFormModal(w http.ResponseWriter, r *http.
 }
 
 func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustFromContext(r.Context())
+	authCtx := identity.MustAuthFromContext(r.Context())
 
 	err := r.ParseForm()
 	if err != nil {
@@ -139,7 +138,7 @@ func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handler) GetOrgRoot(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	http.Redirect(
 		w,
@@ -150,13 +149,13 @@ func (h *Handler) GetOrgRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	response.RenderStatus(w, dashboardPage(ident), http.StatusOK)
 }
 
 func (h *Handler) GetMemberships(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	data, err := h.srv.GetMembershipsOverview(r.Context(), ident)
 	if err != nil {
@@ -168,7 +167,7 @@ func (h *Handler) GetMemberships(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	memberID, err := request.PathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
@@ -196,7 +195,7 @@ func (h *Handler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *http.Re
 }
 
 func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	memberID, err := request.PathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
@@ -277,7 +276,7 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) PostCancelMembership(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	membershipID, err := request.PathValueUUID(r, routes.PathMembershipID)
 	if err != nil {
@@ -305,12 +304,12 @@ func (h *Handler) PostCancelMembership(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetCreateInvitationFormModal(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 	response.RenderStatus(w, invitationCreateFormModal(ident), http.StatusOK)
 }
 
 func (h *Handler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	err := r.ParseForm()
 	if err != nil {
@@ -375,7 +374,7 @@ func (h *Handler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostCancelInvitation(w http.ResponseWriter, r *http.Request) {
-	ident := identity.MustFromContext(r.Context())
+	ident := identity.MustIdentityFromContext(r.Context())
 
 	inviteID, err := request.PathValueUUID(r, routes.PathInvitationID)
 	if err != nil {
@@ -406,7 +405,7 @@ func (h *Handler) GetShowInvitation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = auth.FromContext(r.Context())
+	_, err = identity.AuthFromContext(r.Context())
 	if err != nil {
 		response.RenderStatus(w, invitationRegisterPage(token, invitation), http.StatusOK)
 		return
@@ -416,7 +415,7 @@ func (h *Handler) GetShowInvitation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostAcceptInvitation(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustFromContext(r.Context())
+	authCtx := identity.MustAuthFromContext(r.Context())
 
 	token := r.PathValue(routes.PathInvitationToken)
 
@@ -431,7 +430,7 @@ func (h *Handler) PostAcceptInvitation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PostDeclineInvitation(w http.ResponseWriter, r *http.Request) {
-	authCtx := auth.MustFromContext(r.Context())
+	authCtx := identity.MustAuthFromContext(r.Context())
 
 	token := r.PathValue(routes.PathInvitationToken)
 

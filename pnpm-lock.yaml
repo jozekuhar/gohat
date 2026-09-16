@@ -9,11 +9,11 @@ importers:
   .:
     devDependencies:
       '@alpinejs/focus':
-        specifier: ^3.17.2
-        version: 3.17.2
+        specifier: ^3.17.3
+        version: 3.17.3
       '@alpinejs/ui':
-        specifier: ^3.17.2
-        version: 3.17.2
+        specifier: ^3.17.3
+        version: 3.17.3
       '@tailwindcss/typography':
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.3)
@@ -27,8 +27,8 @@ importers:
         specifier: ^3.13.4
         version: 3.13.4
       alpinejs:
-        specifier: ^3.17.2
-        version: 3.17.2
+        specifier: ^3.17.3
+        version: 3.17.3
       htmx.org:
         specifier: 4.0.0-beta4
         version: 4.0.0-beta4
@@ -50,11 +50,11 @@ importers:
 
 packages:
 
-  '@alpinejs/focus@3.17.2':
-    resolution: {integrity: sha512-ZYER+iuYu9IHT2ihAaP04alQLzLzH5nEMmFwVDe7Yu6bzeub+yJISYjR2hH+DlQTcmAZc7xnFMb6zscCVI091Q==}
+  '@alpinejs/focus@3.17.3':
+    resolution: {integrity: sha512-d91S3KiSnOyrMBfKsWoHKEw+ZPlVWHkaHBQgwPDOFgdVAxFsvZXEXi1EzX0QbOtLW9HqQwcFiqxoxRgs59UNyg==}
 
-  '@alpinejs/ui@3.17.2':
-    resolution: {integrity: sha512-hrVhjWmVUi+wUGu8IYTTqIU9QGPoCN9gulTZMGJ4v82P8ehDsjdZPs32/uTqYyeUTgWYUozDftC4dc8bkWXLFg==}
+  '@alpinejs/ui@3.17.3':
+    resolution: {integrity: sha512-kFNGM1ktFuMUGb7N2ZAggNdjaXzrw1rp6w8KdoW/VpTuvnyKJLh9aEAOiePm5XyDGvNA26cL5RWBBIT8Px3XSA==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -405,8 +405,8 @@ packages:
   '@vue/shared@3.5.42':
     resolution: {integrity: sha512-2rPxex1jQf4jvl9MOHl6YaXCPcrNqz/FstMOEh3QWY+/OME9nQTvl9WYeCwhW7AFjaR0SnngZGlp/wkR6rkI6g==}
 
-  alpinejs@3.17.2:
-    resolution: {integrity: sha512-xbnG3LlnmFkiNO49C+qhqjEDqOdB0snKqvT48ZVp8TakpZOpsoQbc/jAxpptQRjZi7c9rLeCfvwQ/XOSirIZFQ==}
+  alpinejs@3.17.3:
+    resolution: {integrity: sha512-hIfoRTBBeHMeMu6gXuKwwNoY6pJ7bwpZ91dXVrqRhUhHFOyGr4S21sUYqbxPY5Cnjo0RAmPZVRRZw1becRyV0Q==}
 
   cssesc@3.0.0:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
@@ -746,12 +746,12 @@ packages:
 
 snapshots:
 
-  '@alpinejs/focus@3.17.2':
+  '@alpinejs/focus@3.17.3':
     dependencies:
       focus-trap: 8.2.2
       tabbable: 6.5.0
 
-  '@alpinejs/ui@3.17.2': {}
+  '@alpinejs/ui@3.17.3': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -966,7 +966,7 @@ snapshots:
 
   '@vue/shared@3.5.42': {}
 
-  alpinejs@3.17.2:
+  alpinejs@3.17.3:
     dependencies:
       '@vue/reactivity': 3.5.42
 
