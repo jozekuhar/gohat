@@ -8,9 +8,9 @@ import (
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
 	"mimokocke/internal/web/request"
 	"mimokocke/internal/web/response"
+	"mimokocke/internal/web/view"
 
 	"github.com/go-playground/form"
 )
@@ -37,7 +37,7 @@ func (h *Handler) GetChannels(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("getting channel overview", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -63,7 +63,7 @@ func (h *Handler) PostCreateWooCommerceChannel(w http.ResponseWriter, r *http.Re
 		h.logger.Error("parsing woo form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -81,7 +81,7 @@ func (h *Handler) PostCreateWooCommerceChannel(w http.ResponseWriter, r *http.Re
 		h.logger.Error("decode woo form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -102,7 +102,7 @@ func (h *Handler) PostCreateWooCommerceChannel(w http.ResponseWriter, r *http.Re
 	if errors.Is(err, db.ErrAlreadyExists) {
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Channel with this name already exists."),
+			view.ToastFragment("Channel with this name already exists."),
 			http.StatusConflict,
 		)
 		return
@@ -111,15 +111,15 @@ func (h *Handler) PostCreateWooCommerceChannel(w http.ResponseWriter, r *http.Re
 		h.logger.Error("save woo channel", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
 	}
 
-	response.HXTrigger(w, components.EventModalClose)
+	response.HXTrigger(w, view.EventModalClose)
 	response.Render(w, channelItem(ident, chn))
-	response.RenderStatus(w, components.ToastFragment("Channel created"), http.StatusCreated)
+	response.RenderStatus(w, view.ToastFragment("Channel created"), http.StatusCreated)
 }
 
 func (h *Handler) PostTestWooCommerceChannel(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +128,7 @@ func (h *Handler) PostTestWooCommerceChannel(w http.ResponseWriter, r *http.Requ
 		h.logger.Error("parse woo form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -145,7 +145,7 @@ func (h *Handler) PostTestWooCommerceChannel(w http.ResponseWriter, r *http.Requ
 		h.logger.Error("decode woo form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -159,13 +159,13 @@ func (h *Handler) PostTestWooCommerceChannel(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Test unsuccescfull"),
+			view.ToastFragment("Test unsuccescfull"),
 			http.StatusBadRequest,
 		)
 		return
 	}
 
-	response.RenderStatus(w, components.ToastFragment("Connection test succesfull"), http.StatusOK)
+	response.RenderStatus(w, view.ToastFragment("Connection test succesfull"), http.StatusOK)
 }
 
 func (h *Handler) GetUpdateChannelModalForm(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +176,7 @@ func (h *Handler) GetUpdateChannelModalForm(w http.ResponseWriter, r *http.Reque
 		h.logger.Error("path value channelID", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -187,7 +187,7 @@ func (h *Handler) GetUpdateChannelModalForm(w http.ResponseWriter, r *http.Reque
 		h.logger.Error("get channel details", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -208,7 +208,7 @@ func (h *Handler) DeleteRemoveChannel(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("path value channelID", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -219,12 +219,12 @@ func (h *Handler) DeleteRemoveChannel(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("get channel details", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
 	}
 
-	response.HXTrigger(w, components.EventModalClose)
-	response.RenderStatus(w, components.ToastFragment("Channel deleted succesfully"), http.StatusOK)
+	response.HXTrigger(w, view.EventModalClose)
+	response.RenderStatus(w, view.ToastFragment("Channel deleted succesfully"), http.StatusOK)
 }

@@ -50,7 +50,7 @@ func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		s, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
+		session, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
 		if err != nil {
 			m.logger.Warn("verifying session", "err", err)
 			cookie.ClearSession(w)
@@ -59,8 +59,8 @@ func (m *authMiddleware) RequireAuth(handler http.Handler) http.Handler {
 		}
 
 		ctx := identity.WithAuth(r.Context(), identity.AuthCtx{
-			UserID:    s.UserID,
-			UserEmail: "peterpan@gmail.com", // todo
+			UserID:    session.Session.UserID,
+			UserEmail: session.User.Email,
 		})
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -74,7 +74,7 @@ func (m *authMiddleware) OptionalAuth(handler http.Handler) http.Handler {
 			return
 		}
 
-		s, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
+		session, err := m.authSrv.VerifySession(r.Context(), sessionIDStr)
 		if err != nil {
 			m.logger.Warn("verifying session", "err", err)
 			cookie.ClearSession(w)
@@ -83,8 +83,8 @@ func (m *authMiddleware) OptionalAuth(handler http.Handler) http.Handler {
 		}
 
 		ctx := identity.WithAuth(r.Context(), identity.AuthCtx{
-			UserID:    s.UserID,
-			UserEmail: "peterpan@gmail.com", // todo
+			UserID:    session.Session.UserID,
+			UserEmail: session.User.Email,
 		})
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})

@@ -11,7 +11,7 @@ export default defineConfig({
         manifest: "manifest.json",
         rollupOptions: {
             input: {
-                view: "./internal/web/components/view.ts",
+                view: "./internal/web/view/view.ts",
             },
         },
     },

@@ -1,8 +1,9 @@
 package auth
 
 import (
+	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
+	"mimokocke/internal/web/view"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -12,14 +13,14 @@ import (
 )
 
 func loginPage() g.Node {
-	return components.BlankLayout(
+	return view.BlankLayout(
 		h.Div(
 			h.Class(
 				"bg-muted container grid h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",
 			),
 			h.Div(
 				h.Class(
-					"mx-auto flex w-full flex-col justify-center space-y-2 sm:w-[480px] lg:p-8",
+					"mx-auto flex w-full flex-col justify-center space-y-2 sm:w-120 lg:p-8",
 				),
 				h.Div(
 					h.Class("mb-4 flex items-center justify-center"),
@@ -29,7 +30,6 @@ func loginPage() g.Node {
 						h.Width("24"),
 						h.Height("24"),
 						g.Attr("decoding", "async"),
-						h.Data("nimg", "1"),
 						h.Class("mr-2 dark:hidden"),
 						h.Src(
 							"https://artifact-nextjs-template.vercel.app/images/logo.svg?dpl=dpl_Gyjss8KqnbavQHpRArQ6yPL3hPJ1",
@@ -43,7 +43,6 @@ func loginPage() g.Node {
 						h.Width("24"),
 						h.Height("24"),
 						g.Attr("decoding", "async"),
-						h.Data("nimg", "1"),
 						h.Class("mr-2 hidden dark:block"),
 						h.Src(
 							"https://artifact-nextjs-template.vercel.app/images/logo.svg?dpl=dpl_Gyjss8KqnbavQHpRArQ6yPL3hPJ1",
@@ -88,7 +87,7 @@ func loginPage() g.Node {
 									),
 									h.Input(
 										h.Class(
-											"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+											"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
 										),
 										h.Placeholder("name@example.com"),
 										h.ID("_r_7_-form-item"),
@@ -125,7 +124,7 @@ func loginPage() g.Node {
 										h.Input(
 											x.Bind("type", `showPassword ? "text" : "password"`),
 											h.Class(
-												"border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+												"border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
 											),
 											h.Placeholder("********"),
 											h.ID("_r_8_-form-item"),
@@ -139,7 +138,7 @@ func loginPage() g.Node {
 										h.Button(
 											x.On("click", "showPassword = !showPassword"),
 											h.Class(
-												"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-muted-foreground absolute top-1/2 right-1 h-6 w-6 -translate-y-1/2 rounded-md",
+												"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-muted-foreground absolute top-1/2 right-1 h-6 w-6 -translate-y-1/2 rounded-md",
 											),
 											h.Type("button"),
 											h.SVG(
@@ -204,7 +203,7 @@ func loginPage() g.Node {
 								),
 								h.Button(
 									h.Class(
-										"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2 mt-2",
+										"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2 mt-2",
 									),
 									g.Text("Login"),
 								),
@@ -230,7 +229,7 @@ func loginPage() g.Node {
 										hx.Get(routes.HXSignInGoogle),
 										hx.Swap("none"),
 										c.Classes{
-											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full": true,
+											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full": true,
 											"[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0": true,
 										},
 										h.Type("button"),
@@ -243,7 +242,7 @@ func loginPage() g.Node {
 										hx.Boost("true"),
 										h.Href(routes.Register),
 										c.Classes{
-											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full": true,
+											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full": true,
 											"[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0": true,
 										},
 										h.Type("button"),
@@ -281,14 +280,14 @@ func loginPage() g.Node {
 }
 
 func registerPage() g.Node {
-	return components.BlankLayout(
+	return view.BlankLayout(
 		h.Div(
 			h.Class(
 				"bg-muted container grid h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",
 			),
 			h.Div(
 				h.Class(
-					"mx-auto flex w-full flex-col justify-center space-y-2 sm:w-[480px] lg:p-8",
+					"mx-auto flex w-full flex-col justify-center space-y-2 sm:w-120 lg:p-8",
 				),
 				h.Div(
 					h.Class("mb-4 flex items-center justify-center"),
@@ -298,7 +297,6 @@ func registerPage() g.Node {
 						h.Width("24"),
 						h.Height("24"),
 						g.Attr("decoding", "async"),
-						h.Data("nimg", "1"),
 						h.Class("mr-2 dark:hidden"),
 						h.Src(
 							"https://artifact-nextjs-template.vercel.app/images/logo.svg?dpl=dpl_Gyjss8KqnbavQHpRArQ6yPL3hPJ1",
@@ -312,7 +310,6 @@ func registerPage() g.Node {
 						h.Width("24"),
 						h.Height("24"),
 						g.Attr("decoding", "async"),
-						h.Data("nimg", "1"),
 						h.Class("mr-2 hidden dark:block"),
 						h.Src(
 							"https://artifact-nextjs-template.vercel.app/images/logo.svg?dpl=dpl_Gyjss8KqnbavQHpRArQ6yPL3hPJ1",
@@ -363,7 +360,7 @@ func registerPage() g.Node {
 									),
 									h.Input(
 										h.Class(
-											"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+											"border-input file:text-foreground placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
 										),
 										h.Placeholder("name@example.com"),
 										h.ID("_r_7_-form-item"),
@@ -390,7 +387,7 @@ func registerPage() g.Node {
 										h.Input(
 											x.Bind("type", `showPassword ? "text" : "password"`),
 											h.Class(
-												"border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+												"border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
 											),
 											h.Placeholder("********"),
 											h.ID("_r_8_-form-item"),
@@ -404,7 +401,7 @@ func registerPage() g.Node {
 										h.Button(
 											x.On("click", "showPassword = !showPassword"),
 											h.Class(
-												"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-muted-foreground absolute top-1/2 right-1 h-6 w-6 -translate-y-1/2 rounded-md",
+												"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-muted-foreground absolute top-1/2 right-1 h-6 w-6 -translate-y-1/2 rounded-md",
 											),
 											h.Type("button"),
 											h.SVG(
@@ -483,7 +480,7 @@ func registerPage() g.Node {
 										h.Input(
 											x.Bind("type", `showPassword ? "text" : "password"`),
 											h.Class(
-												"border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+												"border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
 											),
 											h.Placeholder("********"),
 											h.ID("_r_9_-form-item"),
@@ -497,7 +494,7 @@ func registerPage() g.Node {
 										h.Button(
 											x.On("click", "showPassword = !showPassword"),
 											h.Class(
-												"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-muted-foreground absolute top-1/2 right-1 h-6 w-6 -translate-y-1/2 rounded-md",
+												"inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground text-muted-foreground absolute top-1/2 right-1 h-6 w-6 -translate-y-1/2 rounded-md",
 											),
 											h.Type("button"),
 											h.SVG(
@@ -562,7 +559,7 @@ func registerPage() g.Node {
 								),
 								h.Button(
 									h.Class(
-										"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2 mt-2",
+										"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2 mt-2",
 									),
 									g.Text("Create Account"),
 								),
@@ -588,7 +585,7 @@ func registerPage() g.Node {
 										hx.Get(routes.HXSignInGoogle),
 										hx.Swap("none"),
 										h.Class(
-											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full",
+											"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full",
 										),
 										h.Type("button"),
 										h.SVG(
@@ -608,55 +605,8 @@ func registerPage() g.Node {
 												),
 											),
 										),
-										// h.SVG(
-										// 	g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-										// 	h.Width("24"),
-										// 	h.Height("24"),
-										// 	g.Attr("viewBox", "0 0 24 24"),
-										// 	g.Attr("fill", "none"),
-										// 	g.Attr("stroke", "currentColor"),
-										// 	g.Attr("stroke-width", "2"),
-										// 	g.Attr("stroke-linecap", "round"),
-										// 	g.Attr("stroke-linejoin", "round"),
-										// 	h.Class("tabler-icon tabler-icon-brand-github h-4 w-4"),
-										// 	g.El(
-										// 		"path",
-										// 		g.Attr(
-										// 			"d",
-										// 			"M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5",
-										// 		),
-										// 	),
-										// ),
 										g.Text("Google"),
 									),
-									// h.Button(
-									// 	h.Class(
-									// 		"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full",
-									// 	),
-									// 	h.Type("button"),
-									// 	h.SVG(
-									// 		g.Attr("xmlns", "http://www.w3.org/2000/svg"),
-									// 		h.Width("24"),
-									// 		h.Height("24"),
-									// 		g.Attr("viewBox", "0 0 24 24"),
-									// 		g.Attr("fill", "none"),
-									// 		g.Attr("stroke", "currentColor"),
-									// 		g.Attr("stroke-width", "2"),
-									// 		g.Attr("stroke-linecap", "round"),
-									// 		g.Attr("stroke-linejoin", "round"),
-									// 		h.Class(
-									// 			"tabler-icon tabler-icon-brand-facebook h-4 w-4",
-									// 		),
-									// 		g.El(
-									// 			"path",
-									// 			g.Attr(
-									// 				"d",
-									// 				"M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3",
-									// 			),
-									// 		),
-									// 	),
-									// 	g.Text("Facebook"),
-									// ),
 								),
 							),
 						),
@@ -682,5 +632,22 @@ func registerPage() g.Node {
 				),
 			),
 		),
+	)
+}
+
+func profileSettingsPage(ident identity.IdentityCtx) g.Node {
+	return view.AppLayout(
+		ident,
+		view.SettingsLayout(
+			ident,
+			view.TabProfile,
+			profileSettingsContent(),
+		),
+	)
+}
+
+func profileSettingsContent() g.Node {
+	return h.Div(
+		g.Text("Profile settings"),
 	)
 }

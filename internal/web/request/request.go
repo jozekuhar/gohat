@@ -13,3 +13,7 @@ func PathValueUUID(r *http.Request, key string) (uuid.UUID, error) {
 	}
 	return valueUUID, nil
 }
+
+func IsHTMX(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
+}

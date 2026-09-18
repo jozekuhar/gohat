@@ -5,6 +5,7 @@ import (
 	"uuid"
 
 	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -22,45 +23,45 @@ func NewRepository(baseRepo *db.BaseRepo) *repository {
 func (r *repository) CreateUser(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.CreateUserParams,
-) (db.User, error) {
+	params sqlc.CreateUserParams,
+) (sqlc.User, error) {
 	return r.GetQueries(tx).CreateUser(ctx, params)
 }
 
 func (r *repository) CreateAuthentication(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.CreateAuthenticationParams,
-) (db.Authentication, error) {
+	params sqlc.CreateAuthenticationParams,
+) (sqlc.Authentication, error) {
 	return r.GetQueries(tx).CreateAuthentication(ctx, params)
 }
 
 func (r *repository) GetAuthenticationByEmail(
 	ctx context.Context,
-	params db.GetAuthenticationByEmailParams,
-) (db.Authentication, error) {
+	params sqlc.GetAuthenticationByEmailParams,
+) (sqlc.Authentication, error) {
 	return r.GetQueries(nil).GetAuthenticationByEmail(ctx, params)
 }
 
 func (r *repository) GetAuthenticationByProvider(
 	ctx context.Context,
-	params db.GetAuthenticationByProviderParams,
-) (db.Authentication, error) {
+	params sqlc.GetAuthenticationByProviderParams,
+) (sqlc.Authentication, error) {
 	return r.GetQueries(nil).GetAuthenticationByProvider(ctx, params)
 }
 
 func (r *repository) CreateSession(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.CreateSessionParams,
-) (db.Session, error) {
+	params sqlc.CreateSessionParams,
+) (sqlc.Session, error) {
 	return r.GetQueries(tx).CreateSession(ctx, params)
 }
 
 func (r *repository) GetSession(
 	ctx context.Context,
 	sessionID uuid.UUID,
-) (db.Session, error) {
+) (sqlc.GetSessionRow, error) {
 	return r.GetQueries(nil).GetSession(ctx, sessionID)
 }
 

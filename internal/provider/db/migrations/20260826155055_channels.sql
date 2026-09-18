@@ -11,7 +11,7 @@ CREATE TABLE channels (
     updated_at TIMESTAMPTZ,
     CONSTRAINT uq_channels_organization_id_name UNIQUE (organization_id, name),
     CONSTRAINT channels_provider_check CHECK (
-        provider IN ('woocommerce', 'shopify')
+        provider IN ('woocommerce', 'shopify', 'manual')
     ),
     CONSTRAINT channels_status_check CHECK (
         status IN ('active', 'inactive')

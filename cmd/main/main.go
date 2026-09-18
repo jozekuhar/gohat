@@ -7,15 +7,20 @@ import (
 
 	"mimokocke/internal/domain/auth"
 	"mimokocke/internal/domain/channel"
+	"mimokocke/internal/domain/courier"
+	"mimokocke/internal/domain/order"
 	"mimokocke/internal/domain/tenant"
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/logger"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
-	"mimokocke/internal/web/handler"
+	orderuc "mimokocke/internal/usecase/order"
+	errorweb "mimokocke/internal/web/handler/error"
+	orderweb "mimokocke/internal/web/handler/order"
+	staticweb "mimokocke/internal/web/handler/static"
 	"mimokocke/internal/web/middleware"
+	"mimokocke/internal/web/view"
 
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/form"
@@ -38,9 +43,9 @@ func main() {
 
 	systemClock := clock.NewSystemClock()
 
-	pool, err := db.LoadPool(ctx, cfg.DatabaseURL)
+	pool, err := db.ConnectAndMigrate(ctx, cfg.DatabaseURL, logger, cfg.Debug)
 	if err != nil {
-		log.Panicf("loading postgres: %s", err)
+		log.Panicf("connect and migrate db")
 	}
 
 	resendClient := resend.NewClient(cfg.ResendAPIKey)
@@ -50,22 +55,33 @@ func main() {
 	tenantRepo := tenant.NewRepository(baseRepo)
 	authRepo := auth.NewRepository(baseRepo)
 	channelRepo := channel.NewRepository(baseRepo)
+	orderRepo := order.NewRepository(baseRepo)
+	courierRepo := courier.NewRepository(baseRepo)
 
 	tenantSrv := tenant.NewService(cfg, logger, systemClock, resendClient, tenantRepo)
 	authSrv := auth.NewService(cfg, logger, systemClock, authRepo)
 	channelSrv := channel.NewService(cfg, channelRepo)
+	orderSrv := order.NewService(orderRepo)
+	courierSrv := courier.NewService(courierRepo)
+
+	orderUCRepo := orderuc.NewRepository(baseRepo)
+	listOrdersUC := orderuc.NewListOrdersUseCase(orderUCRepo)
+	createOrderUC := orderuc.NewCreateOrderUseCase(orderSrv)
+	_ = createOrderUC
 
 	decoder := form.NewDecoder()
 	validator := validator.New(validator.WithRequiredStructEnabled())
 
-	err = components.LoadManifest()
+	err = view.LoadManifest()
 	if err != nil {
-		log.Panicf("loading manifest: %s", err)
+		log.Panicf("load manifest: %s", err)
 	}
 
 	authHdl := auth.NewHandler(logger, decoder, validator, authSrv)
 	tenantHdl := tenant.NewHandler(logger, decoder, tenantSrv)
 	channelHdl := channel.NewHandler(logger, decoder, channelSrv)
+
+	orderHdl := orderweb.NewHandler(listOrdersUC, channelSrv, courierSrv, logger)
 
 	tenantMdw := middleware.NewTenantMiddleware(logger, tenantSrv)
 	authMdw := middleware.NewAuthMiddleware(logger, authSrv)
@@ -73,17 +89,17 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Group(func(r chi.Router) {
-		r.Get(routes.Static, handler.GetStatic)
-		r.NotFound(handler.GetNotFound)
-		r.MethodNotAllowed(handler.GetNotFound)
+		r.Get(routes.Static, staticweb.GetStatic)
+		r.NotFound(errorweb.GetNotFound)
+		r.MethodNotAllowed(errorweb.GetNotFound)
 	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(chimiddleware.Logger)
 
 		// Core
-		r.Get(routes.TermsOfService, handler.GetTermsOfService)
-		r.Get(routes.PrivacyPolicy, handler.GetPrivacyPolicy)
+		r.Get(routes.TermsOfService, staticweb.GetTermsOfService)
+		r.Get(routes.PrivacyPolicy, staticweb.GetPrivacyPolicy)
 
 		// Auth
 		r.Get(routes.CallbackSignInGoogle, authHdl.GetSignInGoogleCallback)
@@ -135,6 +151,10 @@ func main() {
 		r.Get(routes.OrgRootPath, tenantHdl.GetOrgRoot)
 		r.Get(routes.OrgDashboardPath, tenantHdl.GetDashboard)
 
+		// Auth
+		r.Get(routes.SettingsProfilePath, authHdl.GetProfileSettings)
+		r.Get(routes.SettingsGeneralPath, tenantHdl.GetGeneralSettings)
+
 		// Memberships
 		r.Get(routes.OrgMembershipsPath, tenantHdl.GetMemberships)
 		r.Get(routes.HXOrgMembershipsUpdatePath, tenantHdl.GetUpdateMembershipFormModal)
@@ -150,6 +170,14 @@ func main() {
 		r.Get(routes.HXOrgChannelsUpdatePath, channelHdl.GetUpdateChannelModalForm)
 		r.Post(routes.HXOrgChannelsDeactivatePath, channelHdl.PostDeactivateChannel)
 		r.Delete(routes.HXOrgChannelsDeletePath, channelHdl.DeleteRemoveChannel)
+
+		// Orders
+		r.Get(routes.OrgOrdersPath, orderHdl.GetOrders)
+		r.Get(routes.HXOrgOrderCreatePath, orderHdl.GetCreateOrderFormModal)
+		r.Post(routes.HXOrgOrderCreatePath, orderHdl.PostCreateOrder)
+
+		// Couriers
+		// r.Get(routes.OrgCouriersPath, courierHdl.GetCouriers)
 	})
 
 	if err := http.ListenAndServe(cfg.Port, r); err != nil {

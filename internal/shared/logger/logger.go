@@ -17,6 +17,7 @@ func Init(debug bool) *slog.Logger {
 		LocalTime:  false,
 		Compress:   false,
 	}
+
 	writers := []io.Writer{fileWriter}
 	if debug {
 		consoleWriter := os.Stdout

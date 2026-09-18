@@ -21,6 +21,10 @@ const (
 	HXSignInGoogle               = "/hx/signin/google"
 	CallbackSignInGoogle         = "/callback/signin/google"
 	HXLogout                     = "/hx/logout"
+	SettingsGeneral              = "/%s/settings/general"
+	SettingsGeneralPath          = "/{" + PathOrganizationSlug + "}/settings/general"
+	SettingsProfile              = "/%s/settings/profile"
+	SettingsProfilePath          = "/{" + PathOrganizationSlug + "}/settings/profile"
 	PrivacyPolicy                = "/privacy"
 	TermsOfService               = "/terms"
 	HXSidebarOrganizations       = "/hx/sidebar/organizations"
@@ -60,4 +64,12 @@ const (
 	HXOrgChannelsDeactivatePath        = "/{" + PathOrganizationSlug + "}/channels/{" + PathChannelID + "}/deactivate"
 	HXOrgChannelsDelete                = "/%s/channels/%s/delete"
 	HXOrgChannelsDeletePath            = "/{" + PathOrganizationSlug + "}/channels/{" + PathChannelID + "}/delete"
+
+	OrgOrders            = "/%s/orders"
+	OrgOrdersPath        = "/{" + PathOrganizationSlug + "}/orders"
+	HXOrgOrderCreate     = "/%s/orders/create"
+	HXOrgOrderCreatePath = "/{" + PathOrganizationSlug + "}/orders/create"
+
+	OrgCouriers     = "/%s/couriers"
+	OrgCouriersPath = "/{" + PathOrganizationSlug + "}/couriers"
 )

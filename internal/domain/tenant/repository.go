@@ -7,6 +7,7 @@ import (
 	"uuid"
 
 	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -30,50 +31,50 @@ type CreateOrganizationParams struct {
 func (r *repository) CreateOrganization(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.CreateOrganizationParams,
-) (db.Organization, error) {
+	params sqlc.CreateOrganizationParams,
+) (sqlc.Organization, error) {
 	return r.GetQueries(tx).CreateOrganization(ctx, params)
 }
 
 func (r *repository) ListActiveOrganizations(
 	ctx context.Context,
 	userID uuid.UUID,
-) ([]db.Organization, error) {
+) ([]sqlc.Organization, error) {
 	return r.GetQueries(nil).ListActiveOrganizations(ctx, userID)
 }
 
 func (r *repository) CreateMembership(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.CreateMembershipParams,
-) (db.Membership, error) {
+	params sqlc.CreateMembershipParams,
+) (sqlc.Membership, error) {
 	return r.GetQueries(tx).CreateMembership(ctx, params)
 }
 
 func (r *repository) ListMemberships(
 	ctx context.Context,
 	orgID uuid.UUID,
-) ([]db.ListMembershipsRow, error) {
+) ([]sqlc.ListMembershipsRow, error) {
 	return r.GetQueries(nil).ListMemberships(ctx, orgID)
 }
 
 func (r *repository) GetMembership(
 	ctx context.Context,
-	params db.GetMembershipParams,
-) (db.GetMembershipRow, error) {
+	params sqlc.GetMembershipParams,
+) (sqlc.GetMembershipRow, error) {
 	return r.GetQueries(nil).GetMembership(ctx, params)
 }
 
 func (r *repository) GetActiveMembershipByUserID(
 	ctx context.Context,
-	params db.GetActiveMembershipByUserIDParams,
-) (db.GetActiveMembershipByUserIDRow, error) {
+	params sqlc.GetActiveMembershipByUserIDParams,
+) (sqlc.GetActiveMembershipByUserIDRow, error) {
 	return r.GetQueries(nil).GetActiveMembershipByUserID(ctx, params)
 }
 
 func (r *repository) CheckMembershipByEmail(
 	ctx context.Context,
-	params db.CheckMembershipByEmailParams,
+	params sqlc.CheckMembershipByEmailParams,
 ) (bool, error) {
 	return r.GetQueries(nil).CheckMembershipByEmail(ctx, params)
 }
@@ -81,15 +82,15 @@ func (r *repository) CheckMembershipByEmail(
 func (r *repository) UpdateMembership(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.UpdateMembershipParams,
-) (db.Membership, error) {
+	params sqlc.UpdateMembershipParams,
+) (sqlc.Membership, error) {
 	return r.GetQueries(tx).UpdateMembership(ctx, params)
 }
 
 func (r *repository) UpdateMembershipCanceled(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.UpdateMembershipCanceledParams,
+	params sqlc.UpdateMembershipCanceledParams,
 ) error {
 	return r.GetQueries(tx).UpdateMembershipCanceled(ctx, params)
 }
@@ -97,35 +98,35 @@ func (r *repository) UpdateMembershipCanceled(
 func (r *repository) CreateInvitation(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.CreateInvitationParams,
-) (db.Invitation, error) {
+	params sqlc.CreateInvitationParams,
+) (sqlc.Invitation, error) {
 	return r.GetQueries(tx).CreateInvitation(ctx, params)
 }
 
 func (r *repository) ListInvitations(
 	ctx context.Context,
 	orgID uuid.UUID,
-) ([]db.Invitation, error) {
+) ([]sqlc.Invitation, error) {
 	return r.GetQueries(nil).ListInvitations(ctx, orgID)
 }
 
 func (r *repository) GetInvitationByTokenHash(
 	ctx context.Context,
 	tokenHash string,
-) (db.GetInvitationByTokenHashRow, error) {
+) (sqlc.GetInvitationByTokenHashRow, error) {
 	return r.GetQueries(nil).GetInvitationByTokenHash(ctx, tokenHash)
 }
 
 func (r *repository) GetLatestInvitationByEmail(
 	ctx context.Context,
-	params db.GetLatestInvitationByEmailParams,
-) (db.Invitation, error) {
+	params sqlc.GetLatestInvitationByEmailParams,
+) (sqlc.Invitation, error) {
 	i, err := r.GetQueries(nil).GetLatestInvitationByEmail(ctx, params)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return db.Invitation{}, db.ErrNotFound
+			return sqlc.Invitation{}, db.ErrNotFound
 		}
-		return db.Invitation{}, fmt.Errorf("GetLatestInvitationByEmail: %w", err)
+		return sqlc.Invitation{}, fmt.Errorf("GetLatestInvitationByEmail: %w", err)
 	}
 	return i, nil
 }
@@ -149,7 +150,15 @@ func (r *repository) UpdateInvitationDeclinedAt(
 func (r *repository) UpdateInvitationCanceled(
 	ctx context.Context,
 	tx pgx.Tx,
-	params db.UpdateInvitationCanceledParams,
+	params sqlc.UpdateInvitationCanceledParams,
 ) error {
 	return r.GetQueries(tx).UpdateInvitationCanceled(ctx, params)
+}
+
+func (r *repository) DeleteInvitation(
+	ctx context.Context,
+	tx pgx.Tx,
+	params sqlc.DeleteInvitationParams,
+) error {
+	return r.GetQueries(tx).DeleteInvitation(ctx, params)
 }

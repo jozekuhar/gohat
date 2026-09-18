@@ -7,7 +7,8 @@ RETURNING *;
 -- name: ListChannels :many
 SELECT *
 FROM channels
-WHERE organization_id = @organization_id;
+WHERE organization_id = @organization_id
+ORDER BY LOWER(name) ASC;
 
 
 -- name: GetChannel :one

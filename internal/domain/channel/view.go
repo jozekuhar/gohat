@@ -3,10 +3,10 @@ package channel
 import (
 	"fmt"
 
-	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
+	"mimokocke/internal/web/view"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -14,8 +14,16 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-func channelsPage(ident identity.IdentityCtx, chns []db.Channel) g.Node {
-	return components.AppLayout(
+const (
+	idChannelList = "channel-list"
+)
+
+func idChannelItem(id string) string {
+	return "channel-item-" + id
+}
+
+func channelsPage(ident identity.IdentityCtx, chns []sqlc.Channel) g.Node {
+	return view.AppLayout(
 		ident,
 		h.Div(
 			h.Class("flex h-full flex-col overflow-hidden"),
@@ -57,7 +65,7 @@ func channelsPage(ident identity.IdentityCtx, chns []db.Channel) g.Node {
 									),
 									hx.Swap("none"),
 									h.Class(
-										"inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 rounded-md text-xs size-9 shrink-0 gap-1.5 p-0 sm:w-auto sm:px-3 lg:hidden",
+										"inline-flex items-center justify-center whitespace-nowrap font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 rounded-md text-xs size-9 shrink-0 gap-1.5 p-0 sm:w-auto sm:px-3 lg:hidden",
 									),
 									h.Aria("label", "Invite member"),
 									g.Raw(
@@ -82,7 +90,7 @@ func channelsPage(ident identity.IdentityCtx, chns []db.Channel) g.Node {
 								),
 								h.Button(
 									h.Class(
-										"items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 rounded-md px-3 text-xs hidden h-8 gap-1.5 lg:inline-flex",
+										"items-center justify-center whitespace-nowrap font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 rounded-md px-3 text-xs hidden h-8 gap-1.5 lg:inline-flex",
 									),
 									g.Raw(
 										`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus size-3.5" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>`,
@@ -104,25 +112,24 @@ func channelsPage(ident identity.IdentityCtx, chns []db.Channel) g.Node {
 								h.Class("flex items-center"),
 								h.Div(
 									h.Class("w-80 shrink-0 lg:w-[25%] lg:shrink"),
-									g.Text("Member"),
+									g.Text("Name"),
 								),
 								h.Div(
 									h.Class("w-37.5 shrink-0 lg:w-[25%] lg:shrink"),
-									g.Text("Availability"),
+									g.Text("Provider"),
 								),
-								h.Div(
-									h.Class("w-25 shrink-0 lg:w-[25%] lg:shrink"),
-									g.Text("Role"),
-								),
+								// h.Div(
+								// 	h.Class("w-25 shrink-0 lg:w-[25%] lg:shrink"),
+								// ),
 								h.Div(
 									h.Class("w-82.5 shrink-0 lg:w-[25%] lg:shrink"),
-									g.Text("Joined"),
+									g.Text("Status"),
 								),
 							),
 						),
 						h.Div(
-							h.ID("channel_list"),
-							g.Map(chns, func(chn db.Channel) g.Node {
+							h.ID(idChannelList),
+							g.Map(chns, func(chn sqlc.Channel) g.Node {
 								return channelItem(ident, chn)
 							}),
 						),
@@ -133,17 +140,13 @@ func channelsPage(ident identity.IdentityCtx, chns []db.Channel) g.Node {
 	)
 }
 
-func channelItem(ident identity.IdentityCtx, chn db.Channel) g.Node {
-	channelNameMap := map[db.ChannelProvider]string{
-		db.ChannelProviderWooCommerce: "WooCommerce",
-		db.ChannelProviderShopify:     "Shopify",
-	}
+func channelItem(ident identity.IdentityCtx, chn sqlc.Channel) g.Node {
 	return h.Div(
 		hx.Get(fmt.Sprintf(routes.HXOrgChannelsUpdate, ident.OrgSlug, chn.ID.String())),
 		hx.Swap("none"),
-		h.ID(fmt.Sprintf("channel_%s", chn.ID.String())),
+		h.ID(idChannelItem(chn.ID.String())),
 		h.Class(
-			"hover:bg-muted/40 flex min-w-225 items-center border-b px-4 py-3 text-sm transition-colors last:border-b-0 sm:px-6 lg:min-w-0 dark:border-white/8 dark:hover:bg-white/4",
+			"hover:bg-muted/40 flex min-w-225 items-center border-b px-4 py-3 text-sm last:border-b-0 sm:px-6 lg:min-w-0 dark:border-white/8 dark:hover:bg-white/4",
 		),
 		h.Div(
 			h.Class(
@@ -155,19 +158,36 @@ func channelItem(ident identity.IdentityCtx, chn db.Channel) g.Node {
 			h.Class(
 				"w-37.5 shrink-0 text-xs text-zinc-500 lg:w-[25%] lg:shrink dark:text-zinc-400",
 			),
-			g.Text(channelNameMap[chn.Provider]),
+			func() g.Node {
+				switch chn.Provider {
+				case sqlc.ChannelProviderShopify:
+					return g.Text("Shopify")
+				case sqlc.ChannelProviderWooCommerce:
+					return g.Text("WooCommerce")
+				default:
+					return g.Text("#N/A")
+				}
+			}(),
 		),
-		h.Div(
-			h.Class(
-				"w-25 shrink-0 text-xs text-zinc-500 lg:w-[25%] lg:shrink dark:text-zinc-400",
-			),
-			g.Text(string(chn.Credentials)),
-		),
+		// h.Div(
+		// 	h.Class(
+		// 		"w-25 shrink-0 text-xs text-zinc-500 lg:w-[25%] lg:shrink dark:text-zinc-400",
+		// 	),
+		// ),
 		h.Div(
 			h.Class(
 				"w-82.5 shrink-0 text-xs text-zinc-500 lg:w-[25%] lg:shrink dark:text-zinc-400",
 			),
-			g.Text(string(chn.Credentials)),
+			func() g.Node {
+				switch chn.Status {
+				case sqlc.ChannelStatusActive:
+					return g.Text("Active")
+				case sqlc.ChannelStatusInactive:
+					return g.Text("Inactive")
+				default:
+					return g.Text("#N/A")
+				}
+			}(),
 		),
 	)
 }
@@ -175,7 +195,7 @@ func channelItem(ident identity.IdentityCtx, chn db.Channel) g.Node {
 func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 	formID := "channel-form"
 
-	return components.ModalFragment(
+	return view.ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
 			h.H2(
@@ -191,7 +211,7 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 			x.Data(`{ provider: null }`),
 			x.Cloak(),
 			h.Class("space-y-4"),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "Name",
 				Name:         "Name",
 				Placeholder:  "GLS Germany",
@@ -199,13 +219,14 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 				AutoComplete: "off",
 				Form:         formID,
 			}),
-			components.Select(components.SelectParams{
+			view.Select(view.SelectParams{
 				XModel:      "provider",
 				Label:       "Provider",
 				Placeholder: "Select provider",
-				Options: []components.SelectOption{
+				Options: []view.SelectOption{
 					{Value: "woocommerce", Text: "WooCommerce"},
 					{Value: "shopify", Text: "Shopify"},
+					{Value: "manual", Text: "Manual"},
 				},
 			}),
 			h.Template(
@@ -214,17 +235,17 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 					x.Init(`htmx.process($el)`),
 					h.ID(formID),
 					h.Class("space-y-4"),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "Store URL",
 						Name:         "StoreURL",
 						AutoComplete: "off",
 					}),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "Consumer Key",
 						Name:         "ConsumerKey",
 						AutoComplete: "off",
 					}),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "Consumer Secret",
 						Name:         "ConsumerSecret",
 						AutoComplete: "off",
@@ -237,7 +258,7 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 							),
 							hx.Swap("none"),
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
 							),
 							h.Type("submit"),
 							g.Text("Test connection"),
@@ -246,10 +267,10 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 							hx.Post(
 								fmt.Sprintf(routes.HXOrgChannelsWooCommerceCreate, ident.OrgSlug),
 							),
+							hx.Target("#"+idChannelList),
 							hx.Swap("append"),
-							hx.Target("#channel_list"),
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
 							),
 							h.Type("submit"),
 							g.Text("Save changes"),
@@ -263,7 +284,7 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 					x.Init(`htmx.process($el)`),
 					h.ID(formID),
 					h.Class("space-y-4"),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "secret",
 						Name:         "secret",
 						AutoComplete: "off",
@@ -275,11 +296,33 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 					),
 					h.Div(
 						hx.Post(fmt.Sprintf(routes.HXOrgChannelsShopifyCreate, ident.OrgSlug)),
-						hx.Swap("none"),
+						hx.Target("#"+idChannelList),
+						hx.Swap("append"),
 						h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
 						h.Button(
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
+							),
+							h.Type("submit"),
+							g.Text("Save changes"),
+						),
+					),
+				),
+			),
+			h.Template(
+				x.If(`provider === 'manual'`),
+				h.Form(
+					x.Init(`htmx.process($el)`),
+					h.ID(formID),
+					h.Class("space-y-4"),
+					h.Div(
+						// hx.Post(fmt.Sprintf(routes.HXOrgChannelsShopifyCreate, ident.OrgSlug)),
+						// hx.Target("#"+idChannelList),
+						// hx.Swap("append"),
+						h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
+						h.Button(
+							h.Class(
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
 							),
 							h.Type("submit"),
 							g.Text("Save changes"),
@@ -292,9 +335,9 @@ func createChannelFormModal(ident identity.IdentityCtx) g.Node {
 }
 
 func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.Node {
-	formID := "channel_form"
+	idChannelForm := "channel-form"
 
-	return components.ModalFragment(
+	return view.ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
 			h.H2(
@@ -310,19 +353,19 @@ func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.No
 			x.Data(fmt.Sprintf(`{ provider: %q }`, chn.Channel.Provider.String())),
 			x.Cloak(),
 			h.Class("space-y-4"),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "Name",
 				Name:         "Name",
 				Value:        chn.Channel.Name,
 				AutoFocus:    true,
 				AutoComplete: "off",
-				Form:         formID,
+				Form:         idChannelForm,
 			}),
-			components.Select(components.SelectParams{
+			view.Select(view.SelectParams{
 				XModel:      "provider",
 				Label:       "Provider",
 				Placeholder: "Select provider",
-				Options: []components.SelectOption{
+				Options: []view.SelectOption{
 					{Value: "woocommerce", Text: "WooCommerce"},
 					{Value: "shopify", Text: "Shopify"},
 				},
@@ -331,21 +374,21 @@ func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.No
 				x.If(`provider === 'woocommerce'`),
 				h.Form(
 					x.Init(`htmx.process($el)`),
-					h.ID(formID),
+					h.ID(idChannelForm),
 					h.Class("space-y-4"),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "Store URL",
 						Name:         "StoreURL",
 						Value:        chn.MaskedWooCommerceCredentials.StoreURL,
 						AutoComplete: "off",
 					}),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "Consumer Key",
 						Name:         "ConsumerKey",
 						Value:        chn.MaskedWooCommerceCredentials.MaskedConsumerKey,
 						AutoComplete: "off",
 					}),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "Consumer Secret",
 						Name:         "ConsumerSecret",
 						Value:        chn.MaskedWooCommerceCredentials.MaskedConsumerSecret,
@@ -359,7 +402,7 @@ func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.No
 							),
 							hx.Swap("none"),
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2",
 							),
 							h.Type("submit"),
 							g.Text("Test connection"),
@@ -376,17 +419,17 @@ func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.No
 							hx.Target(fmt.Sprintf("#channel_%s", chn.Channel.ID.String())),
 							h.Type("button"),
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90 h-9 px-4 py-2",
 							),
 							g.Text("Delete"),
 						),
 						h.Button(
-							hx.Post(
-								fmt.Sprintf(routes.HXOrgChannelsWooCommerceCreate, ident.OrgSlug),
-							),
+							// hx.Post(
+							// 	fmt.Sprintf(routes.HXOrgChannelsWooCommerceCreate, ident.OrgSlug),
+							// ),
 							hx.Swap("none"),
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
 							),
 							h.Type("submit"),
 							g.Text("Save changes"),
@@ -398,9 +441,9 @@ func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.No
 				x.If(`provider === 'shopify'`),
 				h.Form(
 					x.Init(`htmx.process($el)`),
-					h.ID(formID),
+					h.ID(idChannelForm),
 					h.Class("space-y-4"),
-					components.Input(components.InputParams{
+					view.Input(view.InputParams{
 						Label:        "secret",
 						Name:         "secret",
 						AutoComplete: "off",
@@ -411,12 +454,12 @@ func updateChannelFormModal(ident identity.IdentityCtx, chn ChannelDetails) g.No
 						g.Text("Test"),
 					),
 					h.Div(
-						hx.Post(fmt.Sprintf(routes.HXOrgChannelsShopifyCreate, ident.OrgSlug)),
+						// hx.Post(fmt.Sprintf(routes.HXOrgChannelsShopifyCreate, ident.OrgSlug)),
 						hx.Swap("none"),
 						h.Class("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"),
 						h.Button(
 							h.Class(
-								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
+								"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium  focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 h-9 px-4 py-2",
 							),
 							h.Type("submit"),
 							g.Text("Save changes"),

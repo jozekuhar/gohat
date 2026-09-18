@@ -1,4 +1,4 @@
-package components
+package view
 
 import (
 	"crypto/rand"
@@ -66,7 +66,6 @@ type SelectOption struct {
 }
 
 func Select(params SelectParams) g.Node {
-	// id := generateID()
 	options, _ := json.Marshal(params.Options)
 
 	return h.Div(
@@ -80,10 +79,8 @@ func Select(params SelectParams) g.Node {
 			h.Class("hidden"),
 			x.Bind("value", "value"),
 			h.Name(params.Name),
-			// g.If(params.Value != "", h.Value(params.Value)),
 		),
 		h.Label(
-			// h.For(id),
 			h.Class(
 				"text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 col-span-2 text-right",
 			),
@@ -93,7 +90,6 @@ func Select(params SelectParams) g.Node {
 			h.Class("relative col-span-4"),
 			h.Button(
 				g.Attr("x-listbox:button"),
-				// h.ID(id),
 				h.Type("button"),
 				h.Class(
 					"border-input ring-offset-background placeholder:text-muted-foreground focus:ring-ring flex h-9 w-full items-center justify-between rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs focus:ring-1 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
@@ -116,9 +112,7 @@ func Select(params SelectParams) g.Node {
 				g.Attr("x-listbox:options"),
 				x.Cloak(),
 				h.Class(
-					"absolute mt-1 bg-popover text-popover-foreground z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border shadow-md p-1 w-full",
-					// data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2
-					// h-[var(--radix-select-trigger-height)] min-w-[var(--radix-select-trigger-width)]
+					"absolute mt-1 bg-popover text-popover-foreground z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md p-1 w-full",
 				),
 				h.Div(
 					h.Class(

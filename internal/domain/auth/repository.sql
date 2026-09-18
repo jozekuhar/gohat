@@ -32,9 +32,10 @@ RETURNING *;
 
 
 -- name: GetSession :one
-SELECT *
-FROM sessions
-WHERE id = @session_id;
+SELECT sqlc.embed(s), sqlc.embed(u)
+FROM sessions AS s
+LEFT JOIN users AS u ON s.user_id = u.id
+WHERE s.id = @session_id;
 
 
 -- name: DeleteSession :exec

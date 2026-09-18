@@ -31,4 +31,5 @@ const (
 	ChannelCreate    MembershipPermission = "channel:create"
 	ChannelUpdate    MembershipPermission = "channel:update"
 	ChannelDelete    MembershipPermission = "channel:delete"
+	OrderRead        MembershipPermission = "order:read"
 )

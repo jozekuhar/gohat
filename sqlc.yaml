@@ -2,17 +2,17 @@ version: "2"
 sql:
     - engine: "postgresql"
       queries:
-          - "./internal/auth/repository.sql"
-          - "./internal/channel/repository.sql"
-          - "./internal/tenant/repository.sql"
-      schema: "migrations/"
+          - "./internal/domain/auth/repository.sql"
+          - "./internal/domain/channel/repository.sql"
+          - "./internal/domain/tenant/repository.sql"
+          - "./internal/domain/order/repository.sql"
+          - "./internal/usecase/**/repository.sql"
+      schema: "./internal/provider/db/migrations/"
       gen:
           go:
-              package: "db"
-              out: "./internal/provider/db"
+              package: "sqlc"
+              out: "./internal/provider/db/sqlc"
               sql_package: "pgx/v5"
-              output_db_file_name: "gen_db.go"
-              output_models_file_name: "gen_models.go"
               overrides:
                   - db_type: "text"
                     nullable: true

@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.31.1
 
-package db
+package sqlc
 
 import (
 	"time"
@@ -63,6 +63,15 @@ type Membership struct {
 	CanceledByID   *uuid.UUID
 	CreatedAt      time.Time
 	UpdatedAt      *time.Time
+}
+
+type Order struct {
+	ID              uuid.UUID
+	OrganizationID  uuid.UUID
+	ChannelID       uuid.UUID
+	ExternalOrderID string
+	CreatedAt       time.Time
+	UpdatedAt       *time.Time
 }
 
 type Organization struct {

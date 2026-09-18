@@ -14,6 +14,7 @@ import (
 	"uuid"
 
 	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/routes"
@@ -28,7 +29,7 @@ type Service struct {
 	logger            *slog.Logger
 	clock             clock.Clock
 	googleOauthConfig *oauth2.Config
-	authRepo          *repository
+	repo              *repository
 }
 
 func NewService(
@@ -54,32 +55,32 @@ func NewService(
 		logger:            logger,
 		clock:             clock,
 		googleOauthConfig: googleOauthConfig,
-		authRepo:          authRepo,
+		repo:              authRepo,
 	}
 }
 
 func (s *Service) LoginUserWithPassword(
 	ctx context.Context,
 	email, password string,
-) (db.Session, error) {
-	authentication, err := s.authRepo.GetAuthenticationByEmail(
+) (sqlc.Session, error) {
+	authentication, err := s.repo.GetAuthenticationByEmail(
 		ctx,
-		db.GetAuthenticationByEmailParams{
+		sqlc.GetAuthenticationByEmailParams{
 			Email:    email,
-			Provider: db.AuthProviderPassword,
+			Provider: sqlc.AuthProviderPassword,
 		},
 	)
 	if err != nil {
-		return db.Session{}, err
+		return sqlc.Session{}, err
 	}
 
 	if !CheckPasswordHash(password, *authentication.PasswordHash) {
-		return db.Session{}, fmt.Errorf("invalid password")
+		return sqlc.Session{}, fmt.Errorf("invalid password")
 	}
 
 	session, err := s.createSession(ctx, nil, authentication.UserID)
 	if err != nil {
-		return db.Session{}, err
+		return sqlc.Session{}, err
 	}
 
 	return session, nil
@@ -93,11 +94,11 @@ type RegisterUserWithPasswordParams struct {
 func (s *Service) RegisterUserWithPassword(
 	ctx context.Context,
 	params RegisterUserWithPasswordParams,
-) (db.Session, error) {
-	var session db.Session
+) (sqlc.Session, error) {
+	var session sqlc.Session
 
-	err := pgx.BeginFunc(ctx, s.authRepo.Pool(), func(tx pgx.Tx) error {
-		user, err := s.authRepo.CreateUser(ctx, tx, db.CreateUserParams{
+	err := pgx.BeginFunc(ctx, s.repo.Pool(), func(tx pgx.Tx) error {
+		user, err := s.repo.CreateUser(ctx, tx, sqlc.CreateUserParams{
 			ID:    uuid.NewV7(),
 			Email: params.Email,
 		})
@@ -110,10 +111,10 @@ func (s *Service) RegisterUserWithPassword(
 			return err
 		}
 
-		_, err = s.authRepo.CreateAuthentication(ctx, tx, db.CreateAuthenticationParams{
+		_, err = s.repo.CreateAuthentication(ctx, tx, sqlc.CreateAuthenticationParams{
 			ID:           uuid.NewV7(),
 			UserID:       user.ID,
-			Provider:     db.AuthProviderPassword,
+			Provider:     sqlc.AuthProviderPassword,
 			PasswordHash: &passwordHash,
 		})
 		if err != nil {
@@ -127,7 +128,7 @@ func (s *Service) RegisterUserWithPassword(
 		return nil
 	})
 	if err != nil {
-		return db.Session{}, err
+		return sqlc.Session{}, err
 	}
 
 	return session, nil
@@ -154,8 +155,8 @@ type googleUserInfo struct {
 	VerifiedEmail bool   `json:"verified_email"`
 }
 
-func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (db.Session, error) {
-	var zero db.Session
+func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (sqlc.Session, error) {
+	var zero sqlc.Session
 
 	token, err := s.googleOauthConfig.Exchange(ctx, code)
 	if err != nil {
@@ -186,10 +187,10 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (db.Sess
 	// Ce ni authentication za ta mail potem naredimo userja in
 	// ce dobimo error to pomeni da user ze obstaja torej bo moral
 	// se prvo prijavit in potem linkat.
-	authentication, err := s.authRepo.GetAuthenticationByProvider(
+	authentication, err := s.repo.GetAuthenticationByProvider(
 		ctx,
-		db.GetAuthenticationByProviderParams{
-			Provider:   db.AuthProviderGoogle,
+		sqlc.GetAuthenticationByProviderParams{
+			Provider:   sqlc.AuthProviderGoogle,
 			ProviderID: &userInfo.ID,
 		},
 	)
@@ -198,8 +199,8 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (db.Sess
 			return zero, err
 		}
 
-		txErr := pgx.BeginFunc(ctx, s.authRepo.Pool(), func(tx pgx.Tx) error {
-			newUser, err := s.authRepo.CreateUser(ctx, tx, db.CreateUserParams{
+		txErr := pgx.BeginFunc(ctx, s.repo.Pool(), func(tx pgx.Tx) error {
+			newUser, err := s.repo.CreateUser(ctx, tx, sqlc.CreateUserParams{
 				ID:    uuid.NewV7(),
 				Email: userInfo.Email,
 			})
@@ -207,13 +208,13 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (db.Sess
 				return fmt.Errorf("creating user: %w", err)
 			}
 
-			authentication, err = s.authRepo.CreateAuthentication(
+			authentication, err = s.repo.CreateAuthentication(
 				ctx,
 				tx,
-				db.CreateAuthenticationParams{
+				sqlc.CreateAuthenticationParams{
 					ID:         uuid.NewV7(),
 					UserID:     newUser.ID,
-					Provider:   db.AuthProviderGoogle,
+					Provider:   sqlc.AuthProviderGoogle,
 					ProviderID: &userInfo.ID,
 				},
 			)
@@ -236,19 +237,19 @@ func (s *Service) ProcessGoogleSignIn(ctx context.Context, code string) (db.Sess
 	return session, nil
 }
 
-func (s *Service) VerifySession(ctx context.Context, sessionID string) (db.Session, error) {
+func (s *Service) VerifySession(ctx context.Context, sessionID string) (sqlc.GetSessionRow, error) {
 	id, err := uuid.Parse(sessionID)
 	if err != nil {
-		return db.Session{}, fmt.Errorf("parsing session id: %w", err)
+		return sqlc.GetSessionRow{}, fmt.Errorf("parsing session id: %w", err)
 	}
 
-	session, err := s.authRepo.GetSession(ctx, id)
+	session, err := s.repo.GetSession(ctx, id)
 	if err != nil {
-		return db.Session{}, fmt.Errorf("retrieve session: %w", err)
+		return sqlc.GetSessionRow{}, fmt.Errorf("retrieve session: %w", err)
 	}
 
-	if time.Now().After(session.ExpiresAt) {
-		return db.Session{}, fmt.Errorf("session expired: user %s", session.UserID)
+	if time.Now().After(session.Session.ExpiresAt) {
+		return sqlc.GetSessionRow{}, fmt.Errorf("session expired: user %s", session.Session.UserID)
 	}
 
 	return session, nil
@@ -260,7 +261,7 @@ func (s *Service) LogoutUser(ctx context.Context, sessionIDStr string) error {
 		return err
 	}
 
-	err = s.authRepo.DeleteSession(ctx, nil, sessionID)
+	err = s.repo.DeleteSession(ctx, nil, sessionID)
 	return err
 }
 
@@ -268,14 +269,14 @@ func (s *Service) createSession(
 	ctx context.Context,
 	tx pgx.Tx,
 	userID uuid.UUID,
-) (db.Session, error) {
-	session, err := s.authRepo.CreateSession(ctx, tx, db.CreateSessionParams{
+) (sqlc.Session, error) {
+	session, err := s.repo.CreateSession(ctx, tx, sqlc.CreateSessionParams{
 		ID:        uuid.NewV7(),
 		UserID:    userID,
 		ExpiresAt: s.clock.NowUTC().Add(time.Hour * 24 * 14), // 14 days
 	})
 	if err != nil {
-		return db.Session{}, err
+		return sqlc.Session{}, err
 	}
 	return session, nil
 }

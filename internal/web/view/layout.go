@@ -1,4 +1,4 @@
-package components
+package view
 
 import (
 	"mimokocke/internal/shared/identity"

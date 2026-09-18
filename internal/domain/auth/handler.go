@@ -4,10 +4,11 @@ import (
 	"log/slog"
 	"net/http"
 
+	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
 	"mimokocke/internal/web/cookie"
 	"mimokocke/internal/web/response"
+	"mimokocke/internal/web/view"
 
 	"github.com/go-playground/form"
 	"github.com/go-playground/validator/v10"
@@ -44,7 +45,7 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("parsing login form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -60,7 +61,7 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("decoding login form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -71,7 +72,7 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("validating login form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusUnprocessableEntity,
 		)
 		return
@@ -82,7 +83,7 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("logging in user with password", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -103,7 +104,7 @@ func (h *Handler) PostRegister(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("parsing form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -121,7 +122,7 @@ func (h *Handler) PostRegister(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -130,7 +131,7 @@ func (h *Handler) PostRegister(w http.ResponseWriter, r *http.Request) {
 	if form.Password != form.ConfirmPassword {
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Password missmatch"),
+			view.ToastFragment("Password missmatch"),
 			http.StatusUnprocessableEntity,
 		)
 		return
@@ -147,7 +148,7 @@ func (h *Handler) PostRegister(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("registering user", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -200,7 +201,7 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("retrieving session cookie", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -211,7 +212,7 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("logging out user", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -220,4 +221,10 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	cookie.ClearSession(w)
 	response.HXRefresh(w)
 	response.Status(w, http.StatusAccepted)
+}
+
+func (h *Handler) GetProfileSettings(w http.ResponseWriter, r *http.Request) {
+	ident := identity.MustIdentityFromContext(r.Context())
+
+	response.RenderStatus(w, profileSettingsPage(ident), http.StatusOK)
 }

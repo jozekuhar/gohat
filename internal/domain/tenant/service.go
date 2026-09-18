@@ -9,6 +9,7 @@ import (
 	"uuid"
 
 	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 	"mimokocke/internal/shared/clock"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/identity"
@@ -55,7 +56,7 @@ func NewService(
 func (s *Service) ListActiveOrganizations(
 	ctx context.Context,
 	userID uuid.UUID,
-) ([]db.Organization, error) {
+) ([]sqlc.Organization, error) {
 	return s.tenantRepo.ListActiveOrganizations(ctx, userID)
 }
 
@@ -70,21 +71,21 @@ type RegisterOrganizationParams struct {
 func (s *Service) RegisterOrganization(
 	ctx context.Context,
 	params RegisterOrganizationParams,
-) (db.Organization, error) {
+) (sqlc.Organization, error) {
 	activeOrgs, err := s.tenantRepo.ListActiveOrganizations(ctx, params.UserID)
 	if err != nil {
-		return db.Organization{}, fmt.Errorf(
+		return sqlc.Organization{}, fmt.Errorf(
 			"listing organization memberships for user: %w",
 			err,
 		)
 	}
 	if len(activeOrgs) > 0 {
-		return db.Organization{}, ErrOrganizationLimitReached
+		return sqlc.Organization{}, ErrOrganizationLimitReached
 	}
 
-	var organization db.Organization
+	var organization sqlc.Organization
 	err = pgx.BeginFunc(ctx, s.tenantRepo.Pool(), func(tx pgx.Tx) error {
-		organization, err = s.tenantRepo.CreateOrganization(ctx, tx, db.CreateOrganizationParams{
+		organization, err = s.tenantRepo.CreateOrganization(ctx, tx, sqlc.CreateOrganizationParams{
 			ID:   uuid.NewV7(),
 			Name: params.OrgName,
 			Slug: slug.Make(params.OrgSlug),
@@ -93,7 +94,7 @@ func (s *Service) RegisterOrganization(
 			return fmt.Errorf("creating organization: %w", err)
 		}
 
-		_, err = s.tenantRepo.CreateMembership(ctx, tx, db.CreateMembershipParams{
+		_, err = s.tenantRepo.CreateMembership(ctx, tx, sqlc.CreateMembershipParams{
 			ID:             uuid.NewV7(),
 			OrganizationID: organization.ID,
 			UserID:         params.UserID,
@@ -101,7 +102,7 @@ func (s *Service) RegisterOrganization(
 			LastName:       params.LastName,
 			Role:           permissions.RoleOwner,
 			Permissions:    []permissions.MembershipPermission{},
-			Status:         db.MemberStatusActive,
+			Status:         sqlc.MemberStatusActive,
 		},
 		)
 		if err != nil {
@@ -118,16 +119,16 @@ func (s *Service) GetActiveMembership(
 	ctx context.Context,
 	userID uuid.UUID,
 	orgSlug string,
-) (db.GetActiveMembershipByUserIDRow, error) {
-	return s.tenantRepo.GetActiveMembershipByUserID(ctx, db.GetActiveMembershipByUserIDParams{
+) (sqlc.GetActiveMembershipByUserIDRow, error) {
+	return s.tenantRepo.GetActiveMembershipByUserID(ctx, sqlc.GetActiveMembershipByUserIDParams{
 		Slug:   orgSlug,
 		UserID: userID,
 	})
 }
 
 type MembershipsOverview struct {
-	Memberhips  []db.ListMembershipsRow
-	Invitations []db.Invitation
+	Memberhips  []sqlc.ListMembershipsRow
+	Invitations []sqlc.Invitation
 }
 
 func (s *Service) GetMembershipsOverview(
@@ -158,20 +159,23 @@ func (s *Service) GetMembershipDetails(
 	ctx context.Context,
 	ident identity.IdentityCtx,
 	membershipID uuid.UUID,
-) (db.GetMembershipRow, error) {
+) (sqlc.GetMembershipRow, error) {
 	if !ident.HasPermission(permissions.MembershipRead) {
-		return db.GetMembershipRow{}, permissions.ErrDenied
+		return sqlc.GetMembershipRow{}, permissions.ErrDenied
 	}
 
-	return s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
+	return s.tenantRepo.GetMembership(ctx, sqlc.GetMembershipParams{
 		OrganizationID: ident.OrgID,
 		MembershipID:   membershipID,
 	})
 }
 
 // not good: kaj za vraga ta service updetja?
-func (s *Service) UpdateMembership(ctx context.Context, m db.Membership) (db.Membership, error) {
-	return s.tenantRepo.UpdateMembership(ctx, nil, db.UpdateMembershipParams{
+func (s *Service) UpdateMembership(
+	ctx context.Context,
+	m sqlc.Membership,
+) (sqlc.Membership, error) {
+	return s.tenantRepo.UpdateMembership(ctx, nil, sqlc.UpdateMembershipParams{
 		FirstName:      &m.FirstName,
 		LastName:       &m.LastName,
 		OrganizationID: m.OrganizationID,
@@ -185,7 +189,7 @@ func (s *Service) CancelMembership(
 	ident identity.IdentityCtx,
 	membershipID uuid.UUID,
 ) error {
-	membership, err := s.tenantRepo.GetMembership(ctx, db.GetMembershipParams{
+	membership, err := s.tenantRepo.GetMembership(ctx, sqlc.GetMembershipParams{
 		OrganizationID: ident.OrgID,
 		MembershipID:   membershipID,
 	})
@@ -203,7 +207,7 @@ func (s *Service) CancelMembership(
 	return s.tenantRepo.UpdateMembershipCanceled(
 		ctx,
 		nil,
-		db.UpdateMembershipCanceledParams{
+		sqlc.UpdateMembershipCanceledParams{
 			CanceledByID:   &ident.ID,
 			OrganizationID: ident.OrgID,
 			MembershipID:   membershipID,
@@ -224,42 +228,42 @@ func (s *Service) InviteUser(
 	ctx context.Context,
 	ident identity.IdentityCtx,
 	params InviteUserParams,
-) (db.Invitation, error) {
+) (sqlc.Invitation, error) {
 	if !ident.HasPermission(permissions.MembershipCreate) {
-		return db.Invitation{}, permissions.ErrDenied
+		return sqlc.Invitation{}, permissions.ErrDenied
 	}
 
-	isMember, err := s.tenantRepo.CheckMembershipByEmail(ctx, db.CheckMembershipByEmailParams{
+	isMember, err := s.tenantRepo.CheckMembershipByEmail(ctx, sqlc.CheckMembershipByEmailParams{
 		OrganizationID: ident.OrgID,
 		Email:          params.Email,
 	})
 	if err != nil {
-		return db.Invitation{}, fmt.Errorf("checking membership: %w", err)
+		return sqlc.Invitation{}, fmt.Errorf("checking membership: %w", err)
 	}
 	if isMember {
-		return db.Invitation{}, ErrUserAlreadyMember
+		return sqlc.Invitation{}, ErrUserAlreadyMember
 	}
 
-	latestInvitation, err := s.tenantRepo.GetLatestInvitationByEmail(
+	latestInvite, err := s.tenantRepo.GetLatestInvitationByEmail(
 		ctx,
-		db.GetLatestInvitationByEmailParams{
+		sqlc.GetLatestInvitationByEmailParams{
 			OrganizationID: ident.OrgID,
 			Email:          params.Email,
 		},
 	)
 	if err != nil && !errors.Is(err, db.ErrNotFound) {
-		return db.Invitation{}, fmt.Errorf("getting latest invitation: %w", err)
+		return sqlc.Invitation{}, fmt.Errorf("getting latest invitation: %w", err)
 	}
-	if err == nil && latestInvitation.IsPending() {
-		return db.Invitation{}, ErrInvitationAlreadyPending
+	if err == nil && latestInvite.IsPending() {
+		return sqlc.Invitation{}, ErrInvitationAlreadyPending
 	}
 
 	rawToken, tokenHash, err := generateInvitationToken()
 	if err != nil {
-		return db.Invitation{}, err
+		return sqlc.Invitation{}, err
 	}
 
-	invitation, err := s.tenantRepo.CreateInvitation(ctx, nil, db.CreateInvitationParams{
+	invite, err := s.tenantRepo.CreateInvitation(ctx, nil, sqlc.CreateInvitationParams{
 		ID:             uuid.NewV7(),
 		OrganizationID: ident.OrgID,
 		InviterID:      ident.ID,
@@ -272,7 +276,7 @@ func (s *Service) InviteUser(
 		ExpiresAt:      s.clock.NowUTC().Add(24 * time.Hour),
 	})
 	if err != nil {
-		return db.Invitation{}, fmt.Errorf("creating invitation: %w", err)
+		return sqlc.Invitation{}, fmt.Errorf("creating invitation: %w", err)
 	}
 
 	invitationURL := fmt.Sprintf(
@@ -283,16 +287,26 @@ func (s *Service) InviteUser(
 
 	emailParams := &resend.SendEmailRequest{
 		From:    "invites@gajogroup.com",
-		To:      []string{invitation.Email},
+		To:      []string{invite.Email},
 		Subject: "Invitation",
 		ReplyTo: "support@gajogroup.com",
 		Text:    "Hi, you have been invited to our organization. URL: " + invitationURL,
-		Tags: []resend.Tag{
-			{Name: "type", Value: "invite"},
-		},
+		Tags:    []resend.Tag{{Name: "type", Value: "invite"}},
 	}
 	_, err = s.resendClient.Emails.Send(emailParams)
-	return invitation, err
+	if err != nil {
+		cleanupCtx := context.WithoutCancel(ctx)
+		deleteErr := s.tenantRepo.DeleteInvitation(cleanupCtx, nil, sqlc.DeleteInvitationParams{
+			OrganizationID: invite.OrganizationID,
+			InvitationID:   invite.ID,
+		})
+		if deleteErr != nil {
+			return sqlc.Invitation{}, errors.Join(err, deleteErr)
+		}
+		return sqlc.Invitation{}, err
+	}
+
+	return invite, nil
 }
 
 // CancelInvite cancels invite.
@@ -305,7 +319,7 @@ func (s *Service) CancelInvite(
 		return permissions.ErrDenied
 	}
 
-	return s.tenantRepo.UpdateInvitationCanceled(ctx, nil, db.UpdateInvitationCanceledParams{
+	return s.tenantRepo.UpdateInvitationCanceled(ctx, nil, sqlc.UpdateInvitationCanceledParams{
 		CanceledByID:   &ident.ID,
 		OrganizationID: ident.OrgID,
 		InvitationID:   invitationID,
@@ -316,7 +330,7 @@ func (s *Service) CancelInvite(
 func (s *Service) GetInvitation(
 	ctx context.Context,
 	token string,
-) (db.GetInvitationByTokenHashRow, error) {
+) (sqlc.GetInvitationByTokenHashRow, error) {
 	tokenHash := hashToken(token)
 	return s.tenantRepo.GetInvitationByTokenHash(ctx, tokenHash)
 }
@@ -329,34 +343,34 @@ func (s *Service) AcceptInvitation(
 ) error {
 	tokenHash := hashToken(token)
 
-	invitation, err := s.tenantRepo.GetInvitationByTokenHash(ctx, tokenHash)
+	invite, err := s.tenantRepo.GetInvitationByTokenHash(ctx, tokenHash)
 	if err != nil {
 		return err
 	}
 
-	if !invitation.Invitation.IsPending() {
+	if !invite.Invitation.IsPending() {
 		return ErrInvitationNotPending
 	}
 
-	if userEmail != invitation.Invitation.Email {
+	if userEmail != invite.Invitation.Email {
 		return fmt.Errorf("user email not same as invitation email")
 	}
 
 	return pgx.BeginFunc(ctx, s.tenantRepo.Pool(), func(tx pgx.Tx) error {
-		err = s.tenantRepo.UpdateInvitationAcceptedAt(ctx, tx, invitation.Invitation.ID)
+		err = s.tenantRepo.UpdateInvitationAcceptedAt(ctx, tx, invite.Invitation.ID)
 		if err != nil {
 			return err
 		}
 
-		_, err = s.tenantRepo.CreateMembership(ctx, tx, db.CreateMembershipParams{
+		_, err = s.tenantRepo.CreateMembership(ctx, tx, sqlc.CreateMembershipParams{
 			ID:             uuid.NewV7(),
-			OrganizationID: invitation.Organization.ID,
+			OrganizationID: invite.Organization.ID,
 			UserID:         userID,
-			FirstName:      invitation.Invitation.FirstName,
-			LastName:       invitation.Invitation.LastName,
-			Role:           invitation.Invitation.Role,
-			Permissions:    invitation.Invitation.Permissions,
-			Status:         db.MemberStatusActive,
+			FirstName:      invite.Invitation.FirstName,
+			LastName:       invite.Invitation.LastName,
+			Role:           invite.Invitation.Role,
+			Permissions:    invite.Invitation.Permissions,
+			Status:         sqlc.MemberStatusActive,
 		})
 		return err
 	})
@@ -366,18 +380,18 @@ func (s *Service) AcceptInvitation(
 func (s *Service) DeclineInvitation(ctx context.Context, userEmail, token string) error {
 	tokenHash := hashToken(token)
 
-	invitation, err := s.tenantRepo.GetInvitationByTokenHash(ctx, tokenHash)
+	invite, err := s.tenantRepo.GetInvitationByTokenHash(ctx, tokenHash)
 	if err != nil {
 		return err
 	}
 
-	if !invitation.Invitation.IsPending() {
+	if !invite.Invitation.IsPending() {
 		return ErrInvitationNotPending
 	}
 
-	if userEmail != invitation.Invitation.Email {
+	if userEmail != invite.Invitation.Email {
 		return fmt.Errorf("user email not same as invitation email")
 	}
 
-	return s.tenantRepo.UpdateInvitationDeclinedAt(ctx, nil, invitation.Invitation.ID)
+	return s.tenantRepo.UpdateInvitationDeclinedAt(ctx, nil, invite.Invitation.ID)
 }

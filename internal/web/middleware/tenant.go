@@ -9,7 +9,7 @@ import (
 	"mimokocke/internal/provider/db"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/handler"
+	errorweb "mimokocke/internal/web/handler/error"
 )
 
 type tenantMiddleware struct {
@@ -35,7 +35,7 @@ func (m *tenantMiddleware) RequireIdentity(hdl http.Handler) http.Handler {
 		membership, err := m.tenantSrv.GetActiveMembership(r.Context(), authCtx.UserID, orgSlug)
 		if err != nil {
 			if errors.Is(err, db.ErrNotFound) {
-				handler.GetNotFound(w, r)
+				errorweb.GetNotFound(w, r)
 				return
 			}
 			m.logger.Error("verifying membership", "err", err)

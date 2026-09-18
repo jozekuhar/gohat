@@ -3,11 +3,11 @@ package tenant
 import (
 	"fmt"
 
-	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/permissions"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
+	"mimokocke/internal/web/view"
 
 	x "github.com/glsubri/gomponents-alpine"
 	g "maragu.dev/gomponents"
@@ -15,15 +15,24 @@ import (
 	h "maragu.dev/gomponents/html"
 )
 
-func appPage(orgs []db.Organization) g.Node {
-	return components.BlankLayout(
+const (
+	idInvitationList = "invitation-list"
+	idMembershipList = "membership-list"
+)
+
+func idMembershipItem(id string) string {
+	return fmt.Sprintf("membership-item-%s", id)
+}
+
+func appPage(orgs []sqlc.Organization) g.Node {
+	return view.BlankLayout(
 		h.Div(
 			h.Class(
 				"bg-muted flex h-svh flex-col items-center justify-center lg:max-w-none lg:px-0",
 			),
 			h.Div(
 				h.Class("flex flex-row gap-4"),
-				g.Map(orgs, func(org db.Organization) g.Node {
+				g.Map(orgs, func(org sqlc.Organization) g.Node {
 					return h.A(
 						hx.Boost("true"),
 						h.Class("bg-card flex flex-col gap-4 rounded-2xl border p-5"),
@@ -42,7 +51,7 @@ func appPage(orgs []db.Organization) g.Node {
 }
 
 func dashboardPage(ident identity.IdentityCtx) g.Node {
-	return components.AppLayout(
+	return view.AppLayout(
 		ident,
 		h.Main(
 			g.Text("Dashboard"),
@@ -51,7 +60,7 @@ func dashboardPage(ident identity.IdentityCtx) g.Node {
 }
 
 func membershipsPage(ident identity.IdentityCtx, data MembershipsOverview) g.Node {
-	return components.AppLayout(
+	return view.AppLayout(
 		ident,
 		h.Div(
 			h.Class("flex h-full flex-col overflow-hidden"),
@@ -142,17 +151,17 @@ func membershipsPage(ident identity.IdentityCtx, data MembershipsOverview) g.Nod
 									h.Class("w-45 shrink-0 lg:w-[20%] lg:shrink"),
 									g.Text("Member"),
 								),
-								h.Div(
-									h.Class("w-45 shrink-0 lg:w-[20%] lg:shrink"),
-									g.Text("Availability"),
-								),
+								// h.Div(
+								// 	h.Class("w-45 shrink-0 lg:w-[20%] lg:shrink"),
+								// 	g.Text("Availability"),
+								// ),
 								h.Div(
 									h.Class("w-45 shrink-0 lg:w-[20%] lg:shrink"),
 									g.Text("Role"),
 								),
 								h.Div(
 									h.Class("w-45 shrink-0 lg:w-[20%] lg:shrink"),
-									g.Text("Teams"),
+									g.Text("Status"),
 								),
 								h.Div(
 									h.Class("w-45 shrink-0 lg:w-[20%] lg:shrink"),
@@ -161,8 +170,8 @@ func membershipsPage(ident identity.IdentityCtx, data MembershipsOverview) g.Nod
 							),
 						),
 						h.Div(
-							h.ID("invitations_list"),
-							g.Map(data.Invitations, func(invite db.Invitation) g.Node {
+							h.ID(idInvitationList),
+							g.Map(data.Invitations, func(invite sqlc.Invitation) g.Node {
 								return invitationItem(invite)
 							}),
 						),
@@ -200,8 +209,8 @@ func membershipsPage(ident identity.IdentityCtx, data MembershipsOverview) g.Nod
 							),
 						),
 						h.Div(
-							h.ID("memberships_list"),
-							g.Map(data.Memberhips, func(member db.ListMembershipsRow) g.Node {
+							h.ID(idMembershipList),
+							g.Map(data.Memberhips, func(member sqlc.ListMembershipsRow) g.Node {
 								return membershipItem(
 									ident.OrgSlug,
 									member.Membership,
@@ -216,7 +225,7 @@ func membershipsPage(ident identity.IdentityCtx, data MembershipsOverview) g.Nod
 	)
 }
 
-func invitationItem(invite db.Invitation) g.Node {
+func invitationItem(invite sqlc.Invitation) g.Node {
 	return h.Div(
 		h.Class(
 			"hover:bg-muted/40 flex min-w-225 items-center border-b px-4 py-3 text-sm last:border-b-0 sm:px-6 lg:min-w-0 dark:border-white/8 dark:hover:bg-white/4",
@@ -242,23 +251,38 @@ func invitationItem(invite db.Invitation) g.Node {
 				),
 			),
 		),
+		// h.Div(
+		// 	h.Class(
+		// 		"w-45 shrink-0 text-xs text-zinc-500 lg:w-[20%] lg:shrink dark:text-zinc-400 capitalize",
+		// 	),
+		// ),
 		h.Div(
 			h.Class(
 				"w-45 shrink-0 text-xs text-zinc-500 lg:w-[20%] lg:shrink dark:text-zinc-400 capitalize",
 			),
-			g.Text(invite.FirstName),
+			g.Text(invite.Role.String()),
 		),
 		h.Div(
 			h.Class(
 				"w-45 shrink-0 text-xs text-zinc-500 lg:w-[20%] lg:shrink dark:text-zinc-400 capitalize",
 			),
-			g.Text(invite.LastName),
-		),
-		h.Div(
-			h.Class(
-				"w-45 shrink-0 text-xs text-zinc-500 lg:w-[20%] lg:shrink dark:text-zinc-400 capitalize",
-			),
-			g.Text("todo"),
+			func() g.Node {
+				// TODO(jozekuhar): other statuses
+				switch invite.Status() {
+				case sqlc.InvitationStatusPending:
+					return g.Text("Pending")
+				case sqlc.InvitationStatusAccepted:
+					return g.Text("Accepted")
+				case sqlc.InvitationStatusDeclined:
+					return g.Text("Declined")
+				case sqlc.InvitationStatusCanceled:
+					return g.Text("Canceled")
+				case sqlc.InvitationStatusExpired:
+					return g.Text("Expired")
+				default:
+					return g.Text("N/A")
+				}
+			}(),
 		),
 		h.Div(
 			h.Class(
@@ -269,11 +293,10 @@ func invitationItem(invite db.Invitation) g.Node {
 	)
 }
 
-func membershipItem(orgSlug string, member db.Membership, user db.User) g.Node {
+func membershipItem(orgSlug string, member sqlc.Membership, user sqlc.User) g.Node {
 	return h.Div(
 		hx.Get(fmt.Sprintf(routes.HXOrgMembershipsUpdate, orgSlug, member.ID)),
 		hx.Swap("none"),
-		h.ID(fmt.Sprintf("item-%s", member.ID.String())),
 		h.Class(
 			"hover:bg-muted/40 flex min-w-225 items-center border-b px-4 py-3 text-sm last:border-b-0 sm:px-6 lg:min-w-0 dark:border-white/8 dark:hover:bg-white/4",
 		),
@@ -331,8 +354,8 @@ func membershipItem(orgSlug string, member db.Membership, user db.User) g.Node {
 	)
 }
 
-func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembershipRow) g.Node {
-	return components.ModalFragment(
+func membershipUpdateFormModal(ident identity.IdentityCtx, member sqlc.GetMembershipRow) g.Node {
+	return view.ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
 			h.H2(
@@ -355,10 +378,10 @@ func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembersh
 					member.Membership.ID,
 				),
 			),
+			hx.Target("#"+idMembershipItem(member.Membership.ID.String())),
 			hx.Swap("outerHTML"),
-			hx.Target(fmt.Sprintf("#item-%s", member.Membership.ID)),
 			h.Class("space-y-4"),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "First Name",
 				Name:         "FirstName",
 				Value:        member.Membership.FirstName,
@@ -366,14 +389,14 @@ func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembersh
 				AutoFocus:    true,
 				AutoComplete: "off",
 			}),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "Last Name",
 				Name:         "LastName",
 				Value:        member.Membership.LastName,
 				Placeholder:  "Doe",
 				AutoComplete: "off",
 			}),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "Email",
 				Name:         "Email",
 				Value:        member.User.Email,
@@ -381,13 +404,13 @@ func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembersh
 				AutoComplete: "off",
 				Disabled:     true,
 			}),
-			components.Select(components.SelectParams{
+			view.Select(view.SelectParams{
 				XModel:      "role",
 				Label:       "Role",
 				Name:        "role",
 				Value:       member.Membership.Role.String(),
 				Placeholder: "Select a role",
-				Options: []components.SelectOption{
+				Options: []view.SelectOption{
 					{
 						Value: "owner",
 						Text:  "Owner",
@@ -408,25 +431,25 @@ func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembersh
 					h.Class("grid grid-cols-2 gap-4"),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Read",
 							Name:         "Permissions",
 							Value:        permissions.MembershipRead.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Create",
 							Name:         "Permissions",
 							Value:        permissions.MembershipCreate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Update",
 							Name:         "Permissions",
 							Value:        permissions.MembershipUpdate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Delete",
 							Name:         "Permissions",
 							Value:        permissions.MembershipDelete.String(),
@@ -435,25 +458,25 @@ func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembersh
 					),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Read Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelRead.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Create Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelCreate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Update Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelUpdate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Delete Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelDelete.String(),
@@ -477,7 +500,7 @@ func membershipUpdateFormModal(ident identity.IdentityCtx, member db.GetMembersh
 }
 
 func invitationCreateFormModal(ident identity.IdentityCtx) g.Node {
-	return components.ModalFragment(
+	return view.ModalFragment(
 		h.Div(
 			h.Class("flex flex-col gap-2 text-center sm:text-left"),
 			h.H2(
@@ -493,34 +516,34 @@ func invitationCreateFormModal(ident identity.IdentityCtx) g.Node {
 			x.Data(`{ role: null }`),
 			x.Cloak(),
 			hx.Post(fmt.Sprintf(routes.HXOrgInvitationsCreate, ident.OrgSlug)),
+			hx.Target("#"+idInvitationList),
 			hx.Swap("prepend"),
-			hx.Target("#invitations_list"),
 			h.Class("space-y-4"),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "First Name",
 				Name:         "FirstName",
 				Placeholder:  "John",
 				AutoFocus:    true,
 				AutoComplete: "off",
 			}),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "Last Name",
 				Name:         "LastName",
 				Placeholder:  "Doe",
 				AutoComplete: "off",
 			}),
-			components.Input(components.InputParams{
+			view.Input(view.InputParams{
 				Label:        "Email",
 				Name:         "Email",
 				Placeholder:  "john.doe@gmail.com",
 				AutoComplete: "off",
 			}),
-			components.Select(components.SelectParams{
+			view.Select(view.SelectParams{
 				Name:        "Role",
 				Label:       "Role",
 				Placeholder: "Select a role",
 				XModel:      "role",
-				Options: []components.SelectOption{
+				Options: []view.SelectOption{
 					{
 						Value: "owner",
 						Text:  "Owner",
@@ -541,25 +564,25 @@ func invitationCreateFormModal(ident identity.IdentityCtx) g.Node {
 					h.Class("grid grid-cols-2 gap-4"),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Read",
 							Name:         "Permissions",
 							Value:        permissions.MembershipRead.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Create",
 							Name:         "Permissions",
 							Value:        permissions.MembershipCreate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Update",
 							Name:         "Permissions",
 							Value:        permissions.MembershipUpdate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Membership Delete",
 							Name:         "Permissions",
 							Value:        permissions.MembershipDelete.String(),
@@ -568,25 +591,25 @@ func invitationCreateFormModal(ident identity.IdentityCtx) g.Node {
 					),
 					h.Div(
 						h.Class("border-muted flex flex-col overflow-hidden rounded-md border p-2"),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Read Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelRead.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Create Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelCreate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Update Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelUpdate.String(),
 							AutoComplete: "off",
 						}),
-						components.Checkbox(components.CheckboxParams{
+						view.Checkbox(view.CheckboxParams{
 							Label:        "Delete Channels",
 							Name:         "Permissions",
 							Value:        permissions.ChannelDelete.String(),
@@ -609,8 +632,8 @@ func invitationCreateFormModal(ident identity.IdentityCtx) g.Node {
 	)
 }
 
-func invitationRegisterPage(token string, invite db.GetInvitationByTokenHashRow) g.Node {
-	return components.BlankLayout(
+func invitationRegisterPage(token string, invite sqlc.GetInvitationByTokenHashRow) g.Node {
+	return view.BlankLayout(
 		h.Div(
 			h.Class("h-svh"),
 			h.Div(
@@ -661,8 +684,8 @@ func invitationRegisterPage(token string, invite db.GetInvitationByTokenHashRow)
 	)
 }
 
-func invitationAcceptPage(token string, invite db.GetInvitationByTokenHashRow) g.Node {
-	return components.BlankLayout(
+func invitationAcceptPage(token string, invite sqlc.GetInvitationByTokenHashRow) g.Node {
+	return view.BlankLayout(
 		h.Div(
 			h.Class("h-svh"),
 			h.Div(
@@ -715,7 +738,22 @@ func invitationAcceptPage(token string, invite db.GetInvitationByTokenHashRow) g
 }
 
 func invitationErrorPage() g.Node {
-	return components.BlankLayout(
+	return view.BlankLayout(
 		g.Text("Invitaion is not available anymore"),
 	)
+}
+
+func generalSettingsPage(ident identity.IdentityCtx) g.Node {
+	return view.AppLayout(
+		ident,
+		view.SettingsLayout(
+			ident,
+			view.TabGeneral,
+			generalSettingsContent(),
+		),
+	)
+}
+
+func generalSettingsContent() g.Node {
+	return g.Text("General settings")
 }

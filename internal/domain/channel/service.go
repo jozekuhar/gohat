@@ -9,7 +9,7 @@ import (
 	"time"
 	"uuid"
 
-	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 	"mimokocke/internal/shared/config"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/permissions"
@@ -30,7 +30,7 @@ func NewService(cfg *config.Config, channelRepo *repository) *Service {
 func (s *Service) GetChannelsOverview(
 	ctx context.Context,
 	ident identity.IdentityCtx,
-) ([]db.Channel, error) {
+) ([]sqlc.Channel, error) {
 	if !ident.HasPermission(permissions.ChannelRead) {
 		return nil, permissions.ErrDenied
 	}
@@ -39,7 +39,7 @@ func (s *Service) GetChannelsOverview(
 }
 
 type ChannelDetails struct {
-	Channel                      db.Channel
+	Channel                      sqlc.Channel
 	MaskedWooCommerceCredentials maskedWooCommerceCredentials
 	MaskedShopifyCredentials     maskedShopifyCredentials
 }
@@ -63,7 +63,7 @@ func (s *Service) GetChannelDetails(
 	var chnDetails ChannelDetails
 	var err error
 
-	chnDetails.Channel, err = s.channelRepo.GetChannel(ctx, db.GetChannelParams{
+	chnDetails.Channel, err = s.channelRepo.GetChannel(ctx, sqlc.GetChannelParams{
 		OrganizationID: ident.OrgID,
 		ChannelID:      channelID,
 	})
@@ -77,7 +77,7 @@ func (s *Service) GetChannelDetails(
 	}
 
 	switch chnDetails.Channel.Provider {
-	case db.ChannelProviderWooCommerce:
+	case sqlc.ChannelProviderWooCommerce:
 		var wooCreds WooCommerceCredentials
 
 		err := json.Unmarshal(credsByte, &wooCreds)
@@ -92,7 +92,7 @@ func (s *Service) GetChannelDetails(
 		}
 
 		return chnDetails, nil
-	case db.ChannelProviderShopify:
+	case sqlc.ChannelProviderShopify:
 		// TODO(jozekuhar): shopify
 		return chnDetails, nil
 	default:
@@ -154,9 +154,9 @@ func (s *Service) SaveWooCommerceChannel(
 	ctx context.Context,
 	ident identity.IdentityCtx,
 	params SaveWooCommerceChannelParams,
-) (db.Channel, error) {
+) (sqlc.Channel, error) {
 	if !ident.HasPermission(permissions.ChannelCreate) {
-		return db.Channel{}, permissions.ErrDenied
+		return sqlc.Channel{}, permissions.ErrDenied
 	}
 
 	creds, err := json.Marshal(WooCommerceCredentials{
@@ -165,25 +165,25 @@ func (s *Service) SaveWooCommerceChannel(
 		ConsumerSecret: params.Credentials.ConsumerSecret,
 	})
 	if err != nil {
-		return db.Channel{}, fmt.Errorf("marshal woo creds: %w", err)
+		return sqlc.Channel{}, fmt.Errorf("marshal woo creds: %w", err)
 	}
 
 	encryptedCreds, err := encrypt(creds, s.cfg.MasterKey)
 	if err != nil {
-		return db.Channel{}, fmt.Errorf("encrypt woo creds: %w", err)
+		return sqlc.Channel{}, fmt.Errorf("encrypt woo creds: %w", err)
 	}
 
-	chn, err := s.channelRepo.CreateChannel(ctx, nil, db.CreateChannelParams{
+	chn, err := s.channelRepo.CreateChannel(ctx, nil, sqlc.CreateChannelParams{
 		ID:             uuid.NewV7(),
 		OrganizationID: ident.OrgID,
 		Name:           params.Name,
-		Provider:       db.ChannelProviderWooCommerce,
+		Provider:       sqlc.ChannelProviderWooCommerce,
 		Credentials:    encryptedCreds,
-		Status:         db.ChannelStatusActive,
+		Status:         sqlc.ChannelStatusActive,
 	})
 	if err != nil {
-		// TODO: wrap err with new error for db.Already exists
-		return db.Channel{}, fmt.Errorf("db create channel: %w", err)
+		// TODO: wrap err with new error for sqlc.Already exists
+		return sqlc.Channel{}, fmt.Errorf("sqlc.create channel: %w", err)
 	}
 
 	return chn, nil
@@ -198,7 +198,7 @@ func (s *Service) RemoveChannel(
 		return permissions.ErrDenied
 	}
 
-	return s.channelRepo.DeleteChannel(ctx, nil, db.DeleteChannelParams{
+	return s.channelRepo.DeleteChannel(ctx, nil, sqlc.DeleteChannelParams{
 		OrganizationID: ident.OrgID,
 		ChannelID:      channelID,
 	})

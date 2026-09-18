@@ -6,13 +6,13 @@ import (
 	"log/slog"
 	"net/http"
 
-	"mimokocke/internal/provider/db"
+	"mimokocke/internal/provider/db/sqlc"
 	"mimokocke/internal/shared/identity"
 	"mimokocke/internal/shared/permissions"
 	"mimokocke/internal/shared/routes"
-	"mimokocke/internal/web/components"
 	"mimokocke/internal/web/request"
 	"mimokocke/internal/web/response"
+	"mimokocke/internal/web/view"
 
 	hx "maragu.dev/gomponents-htmx/http"
 
@@ -64,13 +64,13 @@ func (h *Handler) GetSidebarOrganizationsPartial(w http.ResponseWriter, r *http.
 
 	response.RenderStatus(
 		w,
-		components.SidebarHeaderPopoverOrganizationsPartial(organizations),
+		view.SidebarHeaderPopoverOrganizationsPartial(organizations),
 		http.StatusOK,
 	)
 }
 
 func (h *Handler) GetCreateOrganizationFormModal(w http.ResponseWriter, r *http.Request) {
-	response.RenderStatus(w, components.OrganizationCreateFormModal(), http.StatusOK)
+	response.RenderStatus(w, view.OrganizationCreateFormModal(), http.StatusOK)
 }
 
 func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +81,7 @@ func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request)
 		h.logger.Error("parsing create organization form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -99,7 +99,7 @@ func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request)
 		h.logger.Error("decoding create organization form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -119,7 +119,7 @@ func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request)
 		h.logger.Warn("user tries to create new organization when limit reached", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("You have reached maximum organization limit."),
+			view.ToastFragment("You have reached maximum organization limit."),
 			http.StatusBadRequest,
 		)
 		return
@@ -128,7 +128,7 @@ func (h *Handler) PostCreateOrganization(w http.ResponseWriter, r *http.Request)
 		h.logger.Error("registering organization", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -174,7 +174,7 @@ func (h *Handler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *http.Re
 		h.logger.Error("getting path value uuid", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusBadRequest,
 		)
 		return
@@ -185,7 +185,7 @@ func (h *Handler) GetUpdateMembershipFormModal(w http.ResponseWriter, r *http.Re
 		h.logger.Error("getting membership", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusBadRequest,
 		)
 		return
@@ -202,7 +202,7 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 		h.logger.Error("getting path value uuid", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusBadRequest,
 		)
 		return
@@ -213,7 +213,7 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 		h.logger.Error("parsing form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -229,13 +229,13 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 		h.logger.Error("decoding form", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
 	}
 
-	updatedMember, err := h.srv.UpdateMembership(r.Context(), db.Membership{
+	updatedMember, err := h.srv.UpdateMembership(r.Context(), sqlc.Membership{
 		ID:             memberID,
 		OrganizationID: ident.OrgID,
 		FirstName:      form.FirstName,
@@ -245,7 +245,7 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 		h.logger.Error("update membership", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -256,13 +256,13 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 		h.logger.Error("get membership", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
 	}
 
-	hx.SetTrigger(w.Header(), components.EventModalClose)
+	hx.SetTrigger(w.Header(), view.EventModalClose)
 	response.RenderStatus(
 		w,
 		membershipItem(ident.OrgSlug, member.Membership, member.User),
@@ -270,7 +270,7 @@ func (h *Handler) PatchUpdateMembership(w http.ResponseWriter, r *http.Request) 
 	)
 	response.RenderStatus(
 		w,
-		components.ToastFragment("Membership succesfully updated"),
+		view.ToastFragment("Membership succesfully updated"),
 		http.StatusOK,
 	)
 }
@@ -283,7 +283,7 @@ func (h *Handler) PostCancelMembership(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("getting path value uuid for membership cancel", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusBadRequest,
 		)
 		return
@@ -294,7 +294,7 @@ func (h *Handler) PostCancelMembership(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("canceling membership", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
@@ -331,6 +331,42 @@ func (h *Handler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if form.Email == "" {
+		response.RenderStatus(
+			w,
+			view.ToastFragment("Email is required"),
+			http.StatusUnprocessableEntity,
+		)
+		return
+	}
+
+	if form.FirstName == "" {
+		response.RenderStatus(
+			w,
+			view.ToastFragment("First Name is required"),
+			http.StatusUnprocessableEntity,
+		)
+		return
+	}
+
+	if form.LastName == "" {
+		response.RenderStatus(
+			w,
+			view.ToastFragment("Last Name is required"),
+			http.StatusUnprocessableEntity,
+		)
+		return
+	}
+
+	if form.Role == "" {
+		response.RenderStatus(
+			w,
+			view.ToastFragment("Role is required"),
+			http.StatusUnprocessableEntity,
+		)
+		return
+	}
+
 	invite, err := h.srv.InviteUser(
 		r.Context(),
 		ident,
@@ -345,7 +381,7 @@ func (h *Handler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, ErrUserAlreadyMember) {
 		response.RenderStatus(
 			w,
-			components.ToastFragment("User ("+form.Email+") is already member of organization."),
+			view.ToastFragment("User ("+form.Email+") is already member of organization."),
 			http.StatusBadRequest,
 		)
 		return
@@ -353,7 +389,7 @@ func (h *Handler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, ErrInvitationAlreadyPending) {
 		response.RenderStatus(
 			w,
-			components.ToastFragment("User ("+form.Email+") has already pending invitation."),
+			view.ToastFragment("User ("+form.Email+") has already pending invitation."),
 			http.StatusBadRequest,
 		)
 		return
@@ -362,14 +398,14 @@ func (h *Handler) PostCreateInvitation(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("invite user to organization", "err", err)
 		response.RenderStatus(
 			w,
-			components.ToastFragment("Something went wrong"),
+			view.ToastFragment("Something went wrong"),
 			http.StatusInternalServerError,
 		)
 		return
 	}
 
-	response.HXTrigger(w, components.EventModalClose)
-	response.Render(w, components.ToastFragment("Invited"))
+	response.HXTrigger(w, view.EventModalClose)
+	response.Render(w, view.ToastFragment("Invited"))
 	response.RenderStatus(w, invitationItem(invite), http.StatusCreated)
 }
 
@@ -442,4 +478,10 @@ func (h *Handler) PostDeclineInvitation(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusSeeOther)
 	hx.SetLocation(w.Header(), routes.AppRoot)
+}
+
+func (h *Handler) GetGeneralSettings(w http.ResponseWriter, r *http.Request) {
+	ident := identity.MustIdentityFromContext(r.Context())
+
+	response.RenderStatus(w, generalSettingsPage(ident), http.StatusOK)
 }

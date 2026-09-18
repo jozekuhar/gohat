@@ -29,4 +29,4 @@ classRegex := 'Class\(\s*"([^\"]+)"\s*,?\s*\)'
     go run ./cmd/snippet/main.go
 
 @goose command optional1="" optional2="":
-    GOOSE_DRIVER="postgres" GOOSE_DBSTRING="$DATABASE_URL" GOOSE_MIGRATION_DIR="./migrations/" goose {{command}} {{optional1}} {{optional2}}
+    GOOSE_DRIVER="postgres" GOOSE_DBSTRING="$DATABASE_URL" GOOSE_MIGRATION_DIR="./internal/provider/db/migrations/" goose {{command}} {{optional1}} {{optional2}}

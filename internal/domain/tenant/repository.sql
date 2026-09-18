@@ -79,7 +79,8 @@ RETURNING *;
 -- name: ListInvitations :many
 SELECT *
 FROM invitations
-WHERE organization_id = @organization_id;
+WHERE organization_id = @organization_id
+ORDER BY created_at DESC;
 
 
 -- name: GetInvitationByTokenHash :one
@@ -127,3 +128,8 @@ WHERE organization_id = @organization_id
   AND accepted_at IS NULL
   AND declined_at IS NULL
   AND canceled_at IS NULL;
+
+-- name: DeleteInvitation :exec
+DELETE FROM invitations
+WHERE organization_id = @organization_id
+  AND id = @invitation_id;
